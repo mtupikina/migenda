@@ -1,0 +1,16 @@
+{
+  "name": "migenda",
+  "private": true,
+  "packageManager": "pnpm@10.17.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @migenda/shared build && pnpm --parallel --filter @migenda/shared --filter @migenda/api --filter @migenda/web dev",
+    "build": "pnpm --filter @migenda/shared build && pnpm --filter @migenda/api build && pnpm --filter @migenda/web build",
+    "lint": "pnpm -r lint"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
