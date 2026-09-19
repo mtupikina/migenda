@@ -1,0 +1,9 @@
+@layer theme, base, mantine, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import '@mantine/core/styles.layer.css';
+
+@theme {
+  --color-body: var(--mantine-color-body);
+  --color-ink: #000;
+}

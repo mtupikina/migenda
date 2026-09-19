@@ -1,22 +1,12 @@
-import { Outlet, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 
-function LoggedOutShell() {
-  return <Outlet />;
-}
-
-function LoggedInShell() {
-  return <Outlet />;
-}
+import { LandingPage } from './pages/LandingPage';
 
 export function App() {
   return (
     <Routes>
-      <Route element={<LoggedOutShell />}>
-        <Route path="/" element={null} />
-      </Route>
-      <Route element={<LoggedInShell />}>
-        <Route path="/app" element={null} />
-      </Route>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={null} />
     </Routes>
   );
 }

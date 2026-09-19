@@ -1,4 +1,4 @@
-import { createTheme } from '@mantine/core';
+import { createTheme, type CSSVariablesResolver } from '@mantine/core';
 
 export const theme = createTheme({
   fontFamily: 'Archivo, system-ui, sans-serif',
@@ -8,6 +8,8 @@ export const theme = createTheme({
   },
   defaultRadius: 0,
   primaryColor: 'accent',
+  primaryShade: 5,
+  black: '#201e1d',
   colors: {
     accent: [
       '#fff2ef',
@@ -22,4 +24,33 @@ export const theme = createTheme({
       '#4d170e',
     ],
   },
+  components: {
+    Button: {
+      defaultProps: {
+        radius: 0,
+        fw: 800,
+      },
+    },
+    Anchor: {
+      defaultProps: {
+        underline: 'never',
+      },
+    },
+  },
 });
+
+export const cssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: {
+    '--mantine-color-body': '#f3f2f2',
+    '--mantine-color-text': '#201e1d',
+  },
+  dark: {
+    '--mantine-color-body': '#f3f2f2',
+    '--mantine-color-text': '#201e1d',
+  },
+});
+
+export const divider = 'color-mix(in srgb, #201e1d 40%, transparent)';
+export const hairline = `1px solid ${divider}`;
+export const rule = `2px solid ${divider}`;

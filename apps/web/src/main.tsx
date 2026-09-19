@@ -1,11 +1,11 @@
-import '@mantine/core/styles.css';
-
-import { MantineProvider } from '@mantine/core';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { MantineProvider } from '@mantine/core';
+
 import { App } from './App';
-import { theme } from './theme';
+import { cssVariablesResolver, theme } from './theme';
+import './index.css';
 
 const root = document.getElementById('root');
 if (!root) {
@@ -14,7 +14,7 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
       <BrowserRouter>
         <App />
       </BrowserRouter>

@@ -1,0 +1,29 @@
+---
+description: One React component per file; keep components small
+globs: **/*.{tsx,jsx}
+alwaysApply: true
+---
+
+# React components
+
+- **One component function per file.** Never define a second `function` / `const` component in the same file (no local `Rule`, `Kicker`, row, or board helpers next to a page).
+- **Pages only compose.** A page file imports sections and returns layout. It does not inline nav, hero, stats, features, boards, CTAs, or footers.
+- **Share repeated chrome.** If the design uses the same bar, brand, or footer on multiple screens, put it in `components/` and vary only the slot (`children`). Do not keep a page-named copy (`LandingNav`) of a shared shell.
+- **Keep each file small.** One UI concern. If a component grows past ~50 lines of JSX or you need another component to keep it readable, extract a new file.
+- **Helpers are not components.** Style factories, constants, and types go in `.ts` files — still one concern per file, never a second component.
+- **No inline presentation styles.** Do not use `style={{}}`, Mantine `styles`, or CSS modules for hover or color. Put Tailwind utilities on the element (`className="hover:text-body"`).
+
+```tsx
+// ❌ BAD — chrome copied into a landing-only file
+export function LandingNav() { return <Group component="nav">...</Group>; }
+
+// ✅ GOOD — shared shell; page-specific links are children
+export function Nav({ children }: { children?: ReactNode }) {
+  return (
+    <Group component="nav">
+      <BrandMark />
+      {children}
+    </Group>
+  );
+}
+```
