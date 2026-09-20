@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+export const registerSchema = z.object({
+  name: z.string().min(1, 'Enter your full name'),
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(1, 'Enter a password'),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 export const createAccountSchema = z
   .object({
     name: z.string().min(1, 'Enter your full name'),

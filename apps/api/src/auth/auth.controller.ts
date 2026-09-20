@@ -8,12 +8,23 @@ import { OAUTH_STATE_COOKIE, SESSION_COOKIE } from './auth.constants';
 import { clearOAuthStateCookie, setOAuthStateCookie, setSessionCookie } from './auth.cookies';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
+import { RegisterDto } from './register.dto';
 import { buildAuthorizeUrl, fetchOAuthProfile, OAuthError } from './oauth';
 import type { OAuthProvider } from './oauth.types';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
+
+  @Post('register')
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, sid, maxAge } = await this.auth.register(dto);
+    setSessionCookie(res, sid, maxAge);
+    return user;
+  }
 
   @Post('login')
   async login(

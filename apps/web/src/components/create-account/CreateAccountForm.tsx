@@ -1,19 +1,34 @@
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Stack, TextInput } from '@mantine/core';
+import { Box, Button, Stack, Text, TextInput } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
 
 import { createAccountSchema, type CreateAccountInput } from '@migenda/shared';
+import { RegisterError, register as registerAccount } from '../../api/auth';
 import { loginFieldClassNames } from '../login/loginFieldClassNames';
 import { CreateAccountHeading } from './CreateAccountHeading';
 import { CreateAccountPasswordField } from './CreateAccountPasswordField';
 import { CreateAccountSignInPrompt } from './CreateAccountSignInPrompt';
 import { CreateAccountTermsRow } from './CreateAccountTermsRow';
 
+function registerMessage(error: unknown) {
+  if (error instanceof RegisterError && error.code === 'email_taken') {
+    return 'An account with this email already exists.';
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 export function CreateAccountForm() {
   const navigate = useNavigate();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const mutation = useMutation({
+    mutationFn: registerAccount,
+    onSuccess: () => {
+      void navigate('/get-started');
+    },
+  });
   const {
     register,
     handleSubmit,
@@ -36,9 +51,9 @@ export function CreateAccountForm() {
       w="100%"
       maw={380}
       noValidate
-      onSubmit={handleSubmit(() => {
-        void navigate('/get-started');
-      })}
+      onSubmit={handleSubmit(({ name, email, password }) =>
+        mutation.mutate({ name: name.trim(), email, password }),
+      )}
     >
       <CreateAccountHeading />
       <Stack gap={16}>
@@ -88,7 +103,12 @@ export function CreateAccountForm() {
             />
           )}
         />
-        <Button type="submit" fullWidth mt={8} fz={14}>
+        {mutation.isError ? (
+          <Text fz={13} c="accent.7">
+            {registerMessage(mutation.error)}
+          </Text>
+        ) : null}
+        <Button type="submit" fullWidth mt={8} fz={14} loading={mutation.isPending}>
           Create account
         </Button>
       </Stack>

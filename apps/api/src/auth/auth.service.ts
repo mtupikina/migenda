@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
@@ -8,6 +8,7 @@ import { Model } from 'mongoose';
 import type { User as AuthUser } from '@migenda/shared';
 import { REMEMBER_ME_MS, SESSION_MS } from './auth.constants';
 import { LoginDto } from './login.dto';
+import { RegisterDto } from './register.dto';
 import type { OAuthProfile } from './oauth.types';
 import { Session, SessionDocument } from './session.schema';
 import { User, UserDocument } from './user.schema';
@@ -18,6 +19,22 @@ export class AuthService {
     @InjectModel(User.name) private readonly users: Model<UserDocument>,
     @InjectModel(Session.name) private readonly sessions: Model<SessionDocument>,
   ) {}
+
+  async register(dto: RegisterDto) {
+    const existing = await this.users.findOne({ email: dto.email }).exec();
+    if (existing) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const user = await this.users.create({
+      email: dto.email,
+      name: dto.name,
+      passwordHash,
+    });
+
+    return this.createSession(user, undefined);
+  }
 
   async login(dto: LoginDto) {
     const user = await this.users.findOne({ email: dto.email }).exec();
