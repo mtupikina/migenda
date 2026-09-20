@@ -8,6 +8,7 @@ import { Model } from 'mongoose';
 import type { User as AuthUser } from '@migenda/shared';
 import { REMEMBER_ME_MS, SESSION_MS } from './auth.constants';
 import { LoginDto } from './login.dto';
+import type { OAuthProfile } from './oauth.types';
 import { Session, SessionDocument } from './session.schema';
 import { User, UserDocument } from './user.schema';
 
@@ -20,19 +21,35 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.users.findOne({ email: dto.email }).exec();
-    const passwordOk = user ? await bcrypt.compare(dto.password, user.passwordHash) : false;
+    const passwordOk =
+      user?.passwordHash ? await bcrypt.compare(dto.password, user.passwordHash) : false;
     if (!user || !passwordOk) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const rememberMe = dto.rememberMe === true;
-    const maxAge = rememberMe ? REMEMBER_ME_MS : undefined;
-    const expiresAt = new Date(Date.now() + (rememberMe ? REMEMBER_ME_MS : SESSION_MS));
-    const sid = randomBytes(32).toString('hex');
+    return this.createSession(user, dto.rememberMe === true ? REMEMBER_ME_MS : undefined);
+  }
 
-    await this.sessions.create({ sid, userId: user._id, expiresAt });
+  async loginWithOAuth(profile: OAuthProfile) {
+    const providerIdField = profile.provider === 'google' ? 'googleId' : 'githubId';
+    let user = await this.users
+      .findOne({
+        $or: [{ [providerIdField]: profile.providerId }, { email: profile.email.toLowerCase() }],
+      })
+      .exec();
 
-    return { user: toAuthUser(user), sid, maxAge };
+    if (!user) {
+      user = await this.users.create({
+        email: profile.email.toLowerCase(),
+        name: profile.name,
+        [providerIdField]: profile.providerId,
+      });
+    } else if (!user.get(providerIdField)) {
+      user.set(providerIdField, profile.providerId);
+      await user.save();
+    }
+
+    return this.createSession(user, REMEMBER_ME_MS);
   }
 
   async me(sid: string | undefined): Promise<AuthUser> {
@@ -53,6 +70,13 @@ export class AuthService {
     }
 
     return toAuthUser(user);
+  }
+
+  private async createSession(user: UserDocument, maxAge?: number) {
+    const sid = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + (maxAge ?? SESSION_MS));
+    await this.sessions.create({ sid, userId: user._id, expiresAt });
+    return { user: toAuthUser(user), sid, maxAge };
   }
 }
 

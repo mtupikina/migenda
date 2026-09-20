@@ -1,9 +1,15 @@
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+
+import { Body, Controller, Get, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-import { SESSION_COOKIE } from './auth.constants';
+import { env } from '../env';
+import { OAUTH_STATE_COOKIE, SESSION_COOKIE } from './auth.constants';
+import { clearOAuthStateCookie, setOAuthStateCookie, setSessionCookie } from './auth.cookies';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
+import { buildAuthorizeUrl, fetchOAuthProfile, OAuthError } from './oauth';
+import type { OAuthProvider } from './oauth.types';
 
 @Controller('auth')
 export class AuthController {
@@ -15,13 +21,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { user, sid, maxAge } = await this.auth.login(dto);
-    res.cookie(SESSION_COOKIE, sid, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
-      path: '/',
-      ...(maxAge ? { maxAge } : {}),
-    });
+    setSessionCookie(res, sid, maxAge);
     return user;
   }
 
@@ -33,4 +33,96 @@ export class AuthController {
     }
     return this.auth.me(sid);
   }
+
+  @Get('google')
+  startGoogle(@Res() res: Response) {
+    this.startOAuth('google', res);
+  }
+
+  @Get('github')
+  startGithub(@Res() res: Response) {
+    this.startOAuth('github', res);
+  }
+
+  @Get('google/callback')
+  googleCallback(
+    @Query('code') code: string | undefined,
+    @Query('state') state: string | undefined,
+    @Query('error') error: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.handleOAuthCallback('google', { code, state, error }, req, res);
+  }
+
+  @Get('github/callback')
+  githubCallback(
+    @Query('code') code: string | undefined,
+    @Query('state') state: string | undefined,
+    @Query('error') error: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.handleOAuthCallback('github', { code, state, error }, req, res);
+  }
+
+  private startOAuth(provider: OAuthProvider, res: Response) {
+    try {
+      const state = randomBytes(16).toString('hex');
+      setOAuthStateCookie(res, `${provider}.${state}`);
+      res.redirect(buildAuthorizeUrl(provider, state));
+    } catch (error) {
+      redirectOAuthFailure(res, error);
+    }
+  }
+
+  private async handleOAuthCallback(
+    provider: OAuthProvider,
+    query: { code?: string; state?: string; error?: string },
+    req: Request,
+    res: Response,
+  ) {
+    try {
+      if (query.error) {
+        throw new OAuthError('denied', query.error);
+      }
+      if (!query.code || !query.state) {
+        throw new OAuthError('failed', 'Missing OAuth code');
+      }
+
+      const expected = req.cookies?.[OAUTH_STATE_COOKIE] as string | undefined;
+      const prefix = `${provider}.`;
+      if (
+        !expected ||
+        !expected.startsWith(prefix) ||
+        !safeEqual(expected.slice(prefix.length), query.state)
+      ) {
+        throw new OAuthError('failed', 'Invalid OAuth state');
+      }
+
+      const profile = await fetchOAuthProfile(provider, query.code);
+      const { sid, maxAge } = await this.auth.loginWithOAuth(profile);
+      clearOAuthStateCookie(res);
+      setSessionCookie(res, sid, maxAge);
+      res.redirect(`${env.webOrigin}/dashboard`);
+    } catch (error) {
+      clearOAuthStateCookie(res);
+      console.error('OAuth callback failed', error instanceof Error ? error.message : error);
+      redirectOAuthFailure(res, error);
+    }
+  }
+}
+
+function safeEqual(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+  return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function redirectOAuthFailure(res: Response, error: unknown) {
+  const code = error instanceof OAuthError ? error.code : 'failed';
+  res.redirect(`${env.webOrigin}/login?oauth=${code}`);
 }

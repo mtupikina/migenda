@@ -20,6 +20,17 @@ export default defineConfig({
       '/auth': {
         target: 'http://127.0.0.1:3000',
         changeOrigin: true,
+        configure(proxy) {
+          proxy.on('proxyRes', (proxyRes) => {
+            const location = proxyRes.headers.location;
+            if (typeof location === 'string' && location.startsWith('http://127.0.0.1:3000/')) {
+              proxyRes.headers.location = location.replace(
+                'http://127.0.0.1:3000',
+                'http://localhost:5173',
+              );
+            }
+          });
+        },
       },
     },
   },

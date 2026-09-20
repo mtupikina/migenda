@@ -1,7 +1,16 @@
+import { env } from './env';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+
+function logOAuthStatus() {
+  const google = Boolean(env.googleClientId && env.googleClientSecret);
+  const github = Boolean(env.githubClientId && env.githubClientSecret);
+  console.log(`OAuth: google ${google ? 'enabled' : 'not configured'}, github ${github ? 'enabled' : 'not configured'}`);
+}
+
+logOAuthStatus();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,12 +23,11 @@ async function bootstrap() {
     }),
   );
   app.enableCors({
-    origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
+    origin: env.webOrigin,
     credentials: true,
   });
 
-  const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port);
+  await app.listen(env.port);
 }
 
 void bootstrap();
