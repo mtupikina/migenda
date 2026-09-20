@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 
+import { CreateAccountPage } from './pages/CreateAccountPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 
@@ -8,7 +9,8 @@ export function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/create-account" element={null} />
+      <Route path="/create-account" element={<CreateAccountPage />} />
+      <Route path="/get-started" element={null} />
       <Route path="/reset-password" element={null} />
       <Route path="/dashboard" element={null} />
     </Routes>
