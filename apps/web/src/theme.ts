@@ -36,6 +36,17 @@ export const theme = createTheme({
         underline: 'never',
       },
     },
+    TextInput: {
+      defaultProps: {
+        radius: 0,
+      },
+    },
+    Checkbox: {
+      defaultProps: {
+        radius: 0,
+        color: 'accent',
+      },
+    },
   },
 });
 
