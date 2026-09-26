@@ -38,4 +38,6 @@ export const env = {
   googleClientSecret: readOptional('GOOGLE_CLIENT_SECRET'),
   githubClientId: readOptional('GITHUB_CLIENT_ID'),
   githubClientSecret: readOptional('GITHUB_CLIENT_SECRET'),
+  brevoApiKey: readOptional('BREVO_API_KEY'),
+  emailFrom: readOptional('EMAIL_FROM'),
 };

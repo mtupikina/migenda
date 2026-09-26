@@ -1,12 +1,24 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 
-import { Body, Controller, Get, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 import { env } from '../env';
 import { OAUTH_STATE_COOKIE, SESSION_COOKIE } from './auth.constants';
 import { clearOAuthStateCookie, setOAuthStateCookie, setSessionCookie } from './auth.cookies';
 import { AuthService } from './auth.service';
+import { CompletePasswordResetDto } from './complete-password-reset.dto';
+import { ForgotPasswordDto } from './forgot-password.dto';
 import { LoginDto } from './login.dto';
 import { RegisterDto } from './register.dto';
 import { buildAuthorizeUrl, fetchOAuthProfile, OAuthError } from './oauth';
@@ -34,6 +46,20 @@ export class AuthController {
     const { user, sid, maxAge } = await this.auth.login(dto);
     setSessionCookie(res, sid, maxAge);
     return user;
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.auth.requestPasswordReset(dto.email);
+    return { ok: true };
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  async resetPassword(@Body() dto: CompletePasswordResetDto) {
+    await this.auth.completePasswordReset(dto.token, dto.password);
+    return { ok: true };
   }
 
   @Get('me')

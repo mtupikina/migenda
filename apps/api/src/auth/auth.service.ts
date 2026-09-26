@@ -1,13 +1,26 @@
 import { randomBytes } from 'node:crypto';
 
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
 
 import type { User as AuthUser } from '@migenda/shared';
+import { env } from '../env';
+import { MailService } from '../mail/mail.service';
 import { REMEMBER_ME_MS, SESSION_MS } from './auth.constants';
 import { LoginDto } from './login.dto';
+import {
+  createPasswordResetToken,
+  hashPasswordResetToken,
+  PASSWORD_RESET_MS,
+} from './password-reset-token';
+import { PasswordReset, PasswordResetDocument } from './password-reset.schema';
 import { RegisterDto } from './register.dto';
 import type { OAuthProfile } from './oauth.types';
 import { Session, SessionDocument } from './session.schema';
@@ -18,6 +31,9 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private readonly users: Model<UserDocument>,
     @InjectModel(Session.name) private readonly sessions: Model<SessionDocument>,
+    @InjectModel(PasswordReset.name)
+    private readonly passwordResets: Model<PasswordResetDocument>,
+    private readonly mail: MailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -69,6 +85,48 @@ export class AuthService {
     return this.createSession(user, REMEMBER_ME_MS);
   }
 
+  async requestPasswordReset(email: string) {
+    const user = await this.users.findOne({ email }).exec();
+    if (!user?.passwordHash) {
+      return;
+    }
+
+    const { token, tokenHash } = createPasswordResetToken();
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_MS);
+
+    await this.passwordResets.deleteMany({ userId: user._id }).exec();
+    await this.passwordResets.create({ tokenHash, userId: user._id, expiresAt });
+
+    const resetUrl = `${env.webOrigin}/reset-password/confirm?token=${encodeURIComponent(token)}`;
+    try {
+      await this.mail.sendPasswordResetEmail(user.email, resetUrl);
+    } catch (error) {
+      await this.passwordResets.deleteMany({ userId: user._id }).exec();
+      throw error;
+    }
+  }
+
+  async completePasswordReset(token: string, password: string) {
+    const tokenHash = hashPasswordResetToken(token);
+    const reset = await this.passwordResets
+      .findOne({ tokenHash, expiresAt: { $gt: new Date() } })
+      .exec();
+    if (!reset) {
+      throw invalidResetLink();
+    }
+
+    const user = await this.users.findById(reset.userId).exec();
+    if (!user) {
+      throw invalidResetLink();
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 10);
+    await user.save();
+
+    await this.passwordResets.deleteMany({ userId: user._id }).exec();
+    await this.sessions.deleteMany({ userId: user._id }).exec();
+  }
+
   async me(sid: string | undefined): Promise<AuthUser> {
     if (!sid) {
       throw new UnauthorizedException();
@@ -95,6 +153,10 @@ export class AuthService {
     await this.sessions.create({ sid, userId: user._id, expiresAt });
     return { user: toAuthUser(user), sid, maxAge };
   }
+}
+
+function invalidResetLink() {
+  return new BadRequestException('This reset link is invalid or has expired');
 }
 
 function toAuthUser(user: UserDocument): AuthUser {

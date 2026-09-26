@@ -6,3 +6,9 @@ export {
   type CreateAccountInput,
   type RegisterInput,
 } from './create-account';
+export {
+  completePasswordResetSchema,
+  resetPasswordRequestSchema,
+  type CompletePasswordResetInput,
+  type ResetPasswordRequestInput,
+} from './reset-password';
