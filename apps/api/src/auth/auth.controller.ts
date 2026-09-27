@@ -15,7 +15,12 @@ import { Request, Response } from 'express';
 
 import { env } from '../env';
 import { OAUTH_STATE_COOKIE, SESSION_COOKIE } from './auth.constants';
-import { clearOAuthStateCookie, setOAuthStateCookie, setSessionCookie } from './auth.cookies';
+import {
+  clearOAuthStateCookie,
+  clearSessionCookie,
+  setOAuthStateCookie,
+  setSessionCookie,
+} from './auth.cookies';
 import { AuthService } from './auth.service';
 import { CompletePasswordResetDto } from './complete-password-reset.dto';
 import { ForgotPasswordDto } from './forgot-password.dto';
@@ -59,6 +64,15 @@ export class AuthController {
   @HttpCode(200)
   async resetPassword(@Body() dto: CompletePasswordResetDto) {
     await this.auth.completePasswordReset(dto.token, dto.password);
+    return { ok: true };
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const sid = req.cookies?.[SESSION_COOKIE] as string | undefined;
+    await this.auth.logout(sid);
+    clearSessionCookie(res);
     return { ok: true };
   }
 

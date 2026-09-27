@@ -127,6 +127,13 @@ export class AuthService {
     await this.sessions.deleteMany({ userId: user._id }).exec();
   }
 
+  async logout(sid: string | undefined): Promise<void> {
+    if (!sid) {
+      return;
+    }
+    await this.sessions.deleteOne({ sid }).exec();
+  }
+
   async me(sid: string | undefined): Promise<AuthUser> {
     if (!sid) {
       throw new UnauthorizedException();

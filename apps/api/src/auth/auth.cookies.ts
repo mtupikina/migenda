@@ -29,3 +29,7 @@ export function setOAuthStateCookie(res: Response, state: string) {
 export function clearOAuthStateCookie(res: Response) {
   res.clearCookie(OAUTH_STATE_COOKIE, baseCookie());
 }
+
+export function clearSessionCookie(res: Response) {
+  res.clearCookie(SESSION_COOKIE, baseCookie());
+}
