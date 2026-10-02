@@ -1,7 +1,7 @@
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { TextInput, UnstyledButton } from '@mantine/core';
 
-import { loginFieldClassNames } from '../login/loginFieldClassNames';
+import { loginFieldClassNames } from '../../classNames/shared';
 
 type CreateAccountPasswordFieldProps = {
   id: string;

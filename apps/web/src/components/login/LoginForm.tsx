@@ -7,7 +7,7 @@ import { useMutation } from '@tanstack/react-query';
 import { loginSchema, type LoginInput } from '@migenda/shared';
 import { login } from '../../api/auth';
 import { LoginHeading } from './LoginHeading';
-import { loginFieldClassNames } from './loginFieldClassNames';
+import { loginFieldClassNames } from '../../classNames/shared';
 import { LoginOauthError } from './LoginOauthError';
 import { LoginPasswordField } from './LoginPasswordField';
 import { LoginRememberRow } from './LoginRememberRow';

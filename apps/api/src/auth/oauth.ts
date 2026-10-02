@@ -12,7 +12,7 @@ export class OAuthError extends Error {
 }
 
 export function oauthCallbackUrl(provider: OAuthProvider) {
-  return `${env.webOrigin}/auth/${provider}/callback`;
+  return `${env.webOrigin}/api/auth/${provider}/callback`;
 }
 
 export function isOAuthConfigured(provider: OAuthProvider) {
@@ -98,7 +98,7 @@ async function fetchGoogleProfile(code: string): Promise<OAuthProfile> {
     provider: 'google',
     providerId: profile.id,
     email: profile.email,
-    name: profile.name?.trim() || profile.email,
+    displayName: profile.name?.trim() || profile.email,
   };
 }
 
@@ -160,6 +160,6 @@ async function fetchGithubProfile(code: string): Promise<OAuthProfile> {
     provider: 'github',
     providerId: String(profile.id),
     email,
-    name: profile.name?.trim() || profile.login || email,
+    displayName: profile.name?.trim() || profile.login || email,
   };
 }

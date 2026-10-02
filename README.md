@@ -8,8 +8,12 @@ cp apps/api/.env.example apps/api/.env
 pnpm dev
 ```
 
-- Web: http://localhost:5173
-- API: http://localhost:3000 — `GET /auth/me`
+- Web: http://localhost:5173 (React Router owns all paths except `/api/*`)
+- API: http://localhost:3000/api — e.g. `GET /api/auth/me`
+
+In dev, Vite proxies `/api` to the Nest server. In production, serve the SPA for app routes and reverse-proxy `/api` to Nest the same way.
+
+OAuth redirect URIs (Google/GitHub apps) must use **`{WEB_ORIGIN}/api/auth/{google|github}/callback`** (e.g. `http://localhost:5173/api/auth/google/callback`).
 
 Set **`BREVO_API_KEY`** and **`EMAIL_FROM`** (verified sender in Brevo) in `apps/api/.env` — see `.env.example`.
 

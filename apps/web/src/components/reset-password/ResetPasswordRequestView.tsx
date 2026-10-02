@@ -4,7 +4,7 @@ import { Anchor, Box, Button, Stack, Text, TextInput, Title } from '@mantine/cor
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { resetPasswordRequestSchema, type ResetPasswordRequestInput } from '@migenda/shared';
-import { loginFieldClassNames } from '../login/loginFieldClassNames';
+import { loginFieldClassNames } from '../../classNames/shared';
 
 type ResetPasswordRequestViewProps = {
   loading: boolean;

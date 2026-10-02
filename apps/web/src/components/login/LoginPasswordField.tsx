@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { TextInput, UnstyledButton } from '@mantine/core';
 
-import { loginFieldClassNames } from './loginFieldClassNames';
+import { loginFieldClassNames } from '../../classNames/shared';
 
 type LoginPasswordFieldProps = {
   error?: string;

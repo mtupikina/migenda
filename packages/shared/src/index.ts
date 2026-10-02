@@ -1,4 +1,4 @@
-export { userSchema, type User } from './user';
+export { userFullName, userSchema, type User } from './user';
 export { loginSchema, type LoginInput } from './auth';
 export {
   createAccountSchema,
@@ -12,3 +12,13 @@ export {
   type CompletePasswordResetInput,
   type ResetPasswordRequestInput,
 } from './reset-password';
+export {
+  changePasswordSchema,
+  notificationPreferencesSchema,
+  patchProfileSchema,
+  updateProfileSchema,
+  type ChangePasswordInput,
+  type NotificationPreferences,
+  type PatchProfileInput,
+  type UpdateProfileInput,
+} from './profile';

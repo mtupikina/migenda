@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Button, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 
 import { createAccountSchema, type CreateAccountInput } from '@migenda/shared';
 import { RegisterError, register as registerAccount } from '../../api/auth';
-import { loginFieldClassNames } from '../login/loginFieldClassNames';
+import { loginFieldClassNames } from '../../classNames/shared';
 import { CreateAccountHeading } from './CreateAccountHeading';
 import { CreateAccountPasswordField } from './CreateAccountPasswordField';
 import { CreateAccountSignInPrompt } from './CreateAccountSignInPrompt';
@@ -16,6 +16,9 @@ import { CreateAccountTermsRow } from './CreateAccountTermsRow';
 function registerMessage(error: unknown) {
   if (error instanceof RegisterError && error.code === 'email_taken') {
     return 'An account with this email already exists.';
+  }
+  if (error instanceof Error && error.message && !(error instanceof RegisterError)) {
+    return error.message;
   }
   return 'Something went wrong. Please try again.';
 }
@@ -37,7 +40,8 @@ export function CreateAccountForm() {
   } = useForm<CreateAccountInput>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: {
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -51,21 +55,37 @@ export function CreateAccountForm() {
       w="100%"
       maw={380}
       noValidate
-      onSubmit={handleSubmit(({ name, email, password }) =>
-        mutation.mutate({ name: name.trim(), email, password }),
+      onSubmit={handleSubmit(({ firstName, lastName, email, password }) =>
+        mutation.mutate({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email,
+          password,
+        }),
       )}
     >
       <CreateAccountHeading />
       <Stack gap={16}>
-        <TextInput
-          id="ca-name"
-          label="Full name"
-          placeholder="Jordan Rivera"
-          autoComplete="name"
-          error={errors.name?.message}
-          classNames={loginFieldClassNames}
-          {...register('name')}
-        />
+        <SimpleGrid cols={2} spacing={16}>
+          <TextInput
+            id="ca-first"
+            label="First name"
+            placeholder="Jordan"
+            autoComplete="given-name"
+            error={errors.firstName?.message}
+            classNames={loginFieldClassNames}
+            {...register('firstName')}
+          />
+          <TextInput
+            id="ca-last"
+            label="Last name"
+            placeholder="Rivera"
+            autoComplete="family-name"
+            error={errors.lastName?.message}
+            classNames={loginFieldClassNames}
+            {...register('lastName')}
+          />
+        </SimpleGrid>
         <TextInput
           id="ca-email"
           label="Email address"

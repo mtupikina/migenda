@@ -1,0 +1,36 @@
+---
+description: Avoid nested if statements; use guards and early returns
+alwaysApply: true
+---
+
+# No nested `if`
+
+Do not write an `if` block inside another `if` block.
+
+Prefer, in order:
+
+1. **Guard clauses** — validate and `return` / `throw` / `continue` before the main path.
+2. **Boolean locals** — name the condition, then one top-level `if`.
+3. **Extract a function** — when a branch needs async work or several steps.
+
+```typescript
+// ❌ BAD
+if (dto.email !== undefined) {
+  if (email !== user.email) {
+    if (existing && existing._id !== user._id) {
+      throw new ConflictException('...');
+    }
+  }
+}
+
+// ✅ GOOD
+if (email === user.email) {
+  return;
+}
+const takenByOther = existing !== null && String(existing._id) !== String(user._id);
+if (takenByOther) {
+  throw new ConflictException('...');
+}
+```
+
+`else if` chains and single-level `if` / `else` (siblings, not nesting) are fine.

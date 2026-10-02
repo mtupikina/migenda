@@ -6,7 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @migenda/shared build && pnpm --parallel --filter @migenda/api --filter @migenda/web dev",
+    "dev": "pnpm --filter @migenda/shared build && pnpm --parallel --filter @migenda/shared --filter @migenda/api --filter @migenda/web dev",
     "build": "pnpm --filter @migenda/shared build && pnpm --filter @migenda/api build && pnpm --filter @migenda/web build",
     "lint": "pnpm -r lint"
   },

@@ -5,6 +5,8 @@ import type {
   ResetPasswordRequestInput,
 } from '@migenda/shared';
 
+import { apiPath } from './apiPath';
+
 export class RegisterError extends Error {
   constructor(readonly code: 'email_taken' | 'failed') {
     super(code);
@@ -13,7 +15,7 @@ export class RegisterError extends Error {
 }
 
 export async function register(input: RegisterInput): Promise<User> {
-  const response = await fetch('/auth/register', {
+  const response = await fetch(apiPath('/auth/register'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -22,6 +24,17 @@ export async function register(input: RegisterInput): Promise<User> {
 
   if (response.status === 409) {
     throw new RegisterError('email_taken');
+  }
+
+  if (response.status === 400) {
+    const body = (await response.json().catch(() => null)) as { message?: string | string[] } | null;
+    const detail = body?.message;
+    if (typeof detail === 'string') {
+      throw new Error(detail);
+    }
+    if (Array.isArray(detail)) {
+      throw new Error(detail.join(' '));
+    }
   }
 
   if (!response.ok) {
@@ -39,7 +52,7 @@ export class PasswordResetError extends Error {
 }
 
 export async function requestPasswordReset(input: ResetPasswordRequestInput): Promise<void> {
-  const response = await fetch('/auth/forgot-password', {
+  const response = await fetch(apiPath('/auth/forgot-password'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -52,7 +65,7 @@ export async function requestPasswordReset(input: ResetPasswordRequestInput): Pr
 }
 
 export async function completePasswordReset(token: string, password: string): Promise<void> {
-  const response = await fetch('/auth/reset-password', {
+  const response = await fetch(apiPath('/auth/reset-password'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -69,7 +82,7 @@ export async function completePasswordReset(token: string, password: string): Pr
 }
 
 export async function logout(): Promise<void> {
-  const response = await fetch('/auth/logout', {
+  const response = await fetch(apiPath('/auth/logout'), {
     method: 'POST',
     credentials: 'include',
   });
@@ -80,7 +93,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function login(input: LoginInput): Promise<User> {
-  const response = await fetch('/auth/login', {
+  const response = await fetch(apiPath('/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

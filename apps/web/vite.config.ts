@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
+import { API_PREFIX } from './src/api/apiPath';
+
 const appDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
@@ -17,7 +19,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': {
+      [API_PREFIX]: {
         target: 'http://127.0.0.1:3000',
         changeOrigin: true,
         configure(proxy) {

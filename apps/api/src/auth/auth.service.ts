@@ -21,9 +21,11 @@ import {
   PASSWORD_RESET_MS,
 } from './password-reset-token';
 import { PasswordReset, PasswordResetDocument } from './password-reset.schema';
+import { namePartsFromProviderDisplay } from './name-from-provider';
 import { RegisterDto } from './register.dto';
 import type { OAuthProfile } from './oauth.types';
 import { Session, SessionDocument } from './session.schema';
+import { rethrowPersistError } from '../mongo-errors';
 import { User, UserDocument } from './user.schema';
 
 @Injectable()
@@ -37,23 +39,30 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.users.findOne({ email: dto.email }).exec();
+    const email = dto.email.toLowerCase().trim();
+    const existing = await this.findUserByEmail(email);
     if (existing) {
       throw new ConflictException('An account with this email already exists');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = await this.users.create({
-      email: dto.email,
-      name: dto.name,
-      passwordHash,
-    });
+    let user: UserDocument;
+    try {
+      user = await this.users.create({
+        email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        passwordHash,
+      });
+    } catch (error) {
+      rethrowPersistError(error, 'Register');
+    }
 
     return this.createSession(user, undefined);
   }
 
   async login(dto: LoginDto) {
-    const user = await this.users.findOne({ email: dto.email }).exec();
+    const user = await this.findUserByEmail(dto.email);
     const passwordOk =
       user?.passwordHash ? await bcrypt.compare(dto.password, user.passwordHash) : false;
     if (!user || !passwordOk) {
@@ -72,9 +81,11 @@ export class AuthService {
       .exec();
 
     if (!user) {
+      const { firstName, lastName } = namePartsFromProviderDisplay(profile.displayName);
       user = await this.users.create({
         email: profile.email.toLowerCase(),
-        name: profile.name,
+        firstName,
+        lastName,
         [providerIdField]: profile.providerId,
       });
     } else if (!user.get(providerIdField)) {
@@ -135,6 +146,11 @@ export class AuthService {
   }
 
   async me(sid: string | undefined): Promise<AuthUser> {
+    const user = await this.resolveUserFromSession(sid);
+    return toAuthUser(user);
+  }
+
+  async resolveUserFromSession(sid: string | undefined): Promise<UserDocument> {
     if (!sid) {
       throw new UnauthorizedException();
     }
@@ -151,7 +167,15 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    return toAuthUser(user);
+    return user;
+  }
+
+  private findUserByEmail(email: string) {
+    const normalized = email.toLowerCase().trim();
+    return this.users
+      .findOne({ email: normalized })
+      .collation({ locale: 'en', strength: 2 })
+      .exec();
   }
 
   private async createSession(user: UserDocument, maxAge?: number) {
@@ -167,9 +191,24 @@ function invalidResetLink() {
 }
 
 function toAuthUser(user: UserDocument): AuthUser {
+  const notifications = user.notifications ?? {
+    emailShiftChanges: true,
+    emailSchedulingConflicts: true,
+    weeklySummaryDigest: false,
+  };
+
   return {
     id: String(user._id),
     email: user.email,
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role ?? '',
+    avatarUrl: user.avatarUrl,
+    hasPassword: Boolean(user.passwordHash),
+    notifications: {
+      emailShiftChanges: notifications.emailShiftChanges ?? true,
+      emailSchedulingConflicts: notifications.emailSchedulingConflicts ?? true,
+      weeklySummaryDigest: notifications.weeklySummaryDigest ?? false,
+    },
   };
 }
