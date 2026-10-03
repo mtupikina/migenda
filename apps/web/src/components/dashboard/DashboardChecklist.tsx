@@ -4,15 +4,17 @@ import { Button, Group, SimpleGrid, Text } from '@mantine/core';
 
 import { dayKey, occurrencesOn } from '../../dashboardDays';
 import { dashboardPanelClassName } from '../../classNames/shared';
+import { DashboardAllCoveredNote } from './DashboardAllCoveredNote';
 import { DashboardChecklistColumn } from './DashboardChecklistColumn';
 import { DashboardProgressBar } from './DashboardProgressBar';
 
 type DashboardChecklistProps = {
   occurrences: Occurrence[];
   now: Date;
+  firstName: string;
 };
 
-export function DashboardChecklist({ occurrences, now }: DashboardChecklistProps) {
+export function DashboardChecklist({ occurrences, now, firstName }: DashboardChecklistProps) {
   const today = occurrencesOn(occurrences, dayKey(now));
   const done = today.filter((item) => item.completed);
   const stillToCome = today.filter((item) => !item.completed);
@@ -29,7 +31,11 @@ export function DashboardChecklist({ occurrences, now }: DashboardChecklistProps
       </Group>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={24}>
         <DashboardChecklistColumn label="Done" occurrences={done} />
-        <DashboardChecklistColumn label="Still to come" occurrences={stillToCome} />
+        <DashboardChecklistColumn
+          label="Still to come"
+          occurrences={stillToCome}
+          empty={<DashboardAllCoveredNote firstName={firstName} />}
+        />
       </SimpleGrid>
       <Group justify="center" mt="auto" pt={24}>
         <Button component={Link} to={`/calendar/day/${date}`} variant="default">

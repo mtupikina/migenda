@@ -43,7 +43,11 @@ export function DashboardPage() {
               {countOn(schedule.occurrences, dayKey(now)) === 0 ? (
                 <DashboardEmptyChecklist now={now} />
               ) : (
-                <DashboardChecklist occurrences={schedule.occurrences} now={now} />
+                <DashboardChecklist
+                  occurrences={schedule.occurrences}
+                  now={now}
+                  firstName={user.firstName}
+                />
               )}
               <DashboardMiniCalendar occurrences={schedule.occurrences} now={now} />
             </div>
