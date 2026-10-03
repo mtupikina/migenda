@@ -1,16 +1,12 @@
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { AuthRequiredError, fetchMe } from '../api/me';
+import { AuthRequiredError } from '../api/me';
+import { useSession } from './useSession';
 
 export function useRequireAuth() {
   const navigate = useNavigate();
-  const query = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: fetchMe,
-    retry: (failureCount, error) => !(error instanceof AuthRequiredError) && failureCount < 1,
-  });
+  const query = useSession();
 
   useEffect(() => {
     if (query.isError && query.error instanceof AuthRequiredError) {

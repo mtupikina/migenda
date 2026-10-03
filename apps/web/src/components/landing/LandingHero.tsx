@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Button, Grid, Group, Image, Text, Title } from '@mantine/core';
 
+import type { LandingVisitor } from '../../landingVisitor';
 import { rule } from '../../theme';
 
-export function LandingHero() {
+export function LandingHero({ visitor }: { visitor: LandingVisitor }) {
+  const showGuest = visitor === 'guest';
+  const showMember = visitor === 'member';
+
   return (
     <Grid gutter={{ base: 28, md: 72 }} py={{ base: 56, md: 112 }} align="start">
       <Grid.Col span={{ base: 12, md: 7 }}>
@@ -23,12 +27,21 @@ export function LandingHero() {
           deadlines in one calendar, with conflicts caught before they happen.
         </Text>
         <Group gap={12} mt={28}>
-          <Button component={Link} to="/login" className="hover:text-ink">
-            Get started
-          </Button>
-          <Button component={Link} to="/login" variant="subtle">
-            Log in
-          </Button>
+          {showGuest ? (
+            <>
+              <Button component={Link} to="/login" className="hover:text-ink">
+                Get started
+              </Button>
+              <Button component={Link} to="/login" variant="subtle">
+                Log in
+              </Button>
+            </>
+          ) : null}
+          {showMember ? (
+            <Button component={Link} to="/dashboard" className="hover:text-ink">
+              Go to schedule
+            </Button>
+          ) : null}
         </Group>
       </Grid.Col>
       <Grid.Col span={{ base: 12, md: 5 }}>

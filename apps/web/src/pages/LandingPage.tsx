@@ -8,20 +8,24 @@ import { LandingHero } from '../components/landing/LandingHero';
 import { LandingStats } from '../components/landing/LandingStats';
 import { MarketingNav } from '../components/MarketingNav';
 import { Rule } from '../components/Rule';
+import { useSession } from '../hooks/useSession';
+import { landingVisitor } from '../landingVisitor';
 
 export function LandingPage() {
+  const visitor = landingVisitor(useSession());
+
   return (
     <Box mih="100vh">
-      <MarketingNav />
+      <MarketingNav visitor={visitor} />
       <Container size={1200} px={{ base: 20, sm: 72 }}>
-        <LandingHero />
+        <LandingHero visitor={visitor} />
         <Rule />
         <LandingStats />
         <LandingFeatures />
         <LandingBoardSection />
       </Container>
-      <LandingCta />
-      <LandingFooter />
+      <LandingCta visitor={visitor} />
+      <LandingFooter visitor={visitor} />
     </Box>
   );
 }
