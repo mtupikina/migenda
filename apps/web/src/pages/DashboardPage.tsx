@@ -3,9 +3,11 @@ import { Box, Button, Group, Loader, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 
 import { fetchDashboard } from '../api/events';
+import { countOn, dayKey } from '../dashboardDays';
 import { AppNav } from '../components/AppNav';
 import { DashboardChecklist } from '../components/dashboard/DashboardChecklist';
 import { DashboardDayStats } from '../components/dashboard/DashboardDayStats';
+import { DashboardEmptyChecklist } from '../components/dashboard/DashboardEmptyChecklist';
 import { DashboardGreeting } from '../components/dashboard/DashboardGreeting';
 import { DashboardMiniCalendar } from '../components/dashboard/DashboardMiniCalendar';
 import { NewEventDialog } from '../components/dashboard/NewEventDialog';
@@ -38,7 +40,11 @@ export function DashboardPage() {
             </Group>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <DashboardDayStats occurrences={schedule.occurrences} now={now} />
-              <DashboardChecklist occurrences={schedule.occurrences} now={now} />
+              {countOn(schedule.occurrences, dayKey(now)) === 0 ? (
+                <DashboardEmptyChecklist now={now} />
+              ) : (
+                <DashboardChecklist occurrences={schedule.occurrences} now={now} />
+              )}
               <DashboardMiniCalendar occurrences={schedule.occurrences} now={now} />
             </div>
             <NewEventDialog
