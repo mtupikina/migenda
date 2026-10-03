@@ -21,6 +21,7 @@ export function App() {
       <Route path="/reset-password/confirm" element={<ResetPasswordConfirmPage />} />
       <Route path="/logout" element={<LogoutPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/calendar/day/:date" element={<AppRouteStubPage />} />
       <Route path="/search" element={<AppRouteStubPage />} />
       <Route path="/reports" element={<AppRouteStubPage />} />
       <Route path="/team" element={<AppRouteStubPage />} />

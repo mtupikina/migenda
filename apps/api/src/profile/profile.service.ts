@@ -95,13 +95,13 @@ export class ProfileService {
       throw new BadRequestException('Passwords do not match');
     }
 
-    const mustVerifyCurrent = Boolean(user.passwordHash);
-    if (!mustVerifyCurrent) {
+    const passwordHash = user.passwordHash;
+    if (!passwordHash) {
       user.passwordHash = await bcrypt.hash(newPassword, 10);
       return;
     }
 
-    const currentOk = await bcrypt.compare(currentPassword, user.passwordHash);
+    const currentOk = await bcrypt.compare(currentPassword, passwordHash);
     if (!currentOk) {
       throw new UnauthorizedException('Current password is incorrect');
     }
