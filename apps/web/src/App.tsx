@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 
+import { CalendarPage } from './pages/CalendarPage';
 import { CreateAccountPage } from './pages/CreateAccountPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LandingPage } from './pages/LandingPage';
@@ -21,7 +22,9 @@ export function App() {
       <Route path="/reset-password/confirm" element={<ResetPasswordConfirmPage />} />
       <Route path="/logout" element={<LogoutPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/calendar/day/:date" element={<AppRouteStubPage />} />
+      <Route path="/calendar/day/:date" element={<CalendarPage view="day" />} />
+      <Route path="/calendar/week/:date" element={<CalendarPage view="week" />} />
+      <Route path="/calendar/month/:date" element={<CalendarPage view="month" />} />
       <Route path="/search" element={<AppRouteStubPage />} />
       <Route path="/reports" element={<AppRouteStubPage />} />
       <Route path="/team" element={<AppRouteStubPage />} />

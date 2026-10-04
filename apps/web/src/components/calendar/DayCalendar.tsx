@@ -1,0 +1,69 @@
+import { useLayoutEffect, useRef } from 'react';
+import type { Occurrence } from '@migenda/shared';
+
+import { dayKey, occurrencesOn } from '../../dashboardDays';
+import { dashboardPanelClassName } from '../../classNames/shared';
+import { DayCalendarBlock } from './DayCalendarBlock';
+import { DayCalendarLegend } from './DayCalendarLegend';
+import { DayCalendarNow } from './DayCalendarNow';
+import {
+  DAY_CALENDAR_HOUR_PX,
+  DAY_CALENDAR_HOURS,
+  DAY_CALENDAR_OPEN_HOUR,
+} from './dayCalendarLayout';
+
+type DayCalendarProps = {
+  occurrences: Occurrence[];
+  date: Date;
+};
+
+export function DayCalendar({ occurrences, date }: DayCalendarProps) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const day = occurrencesOn(occurrences, dayKey(date));
+  const isToday = dayKey(date) === dayKey(new Date());
+
+  useLayoutEffect(() => {
+    const node = scroller.current;
+    if (!node) {
+      return;
+    }
+    node.scrollTop = DAY_CALENDAR_OPEN_HOUR * DAY_CALENDAR_HOUR_PX;
+  }, [date]);
+
+  return (
+    <div className="mx-auto mt-6 max-w-[520px]">
+      <DayCalendarLegend occurrences={day} />
+      <div className={dashboardPanelClassName}>
+        <div ref={scroller} className="h-[720px] overflow-y-auto bg-[#f7f6f6]">
+          <div className="grid grid-cols-[64px_1fr]">
+            <div>
+              {DAY_CALENDAR_HOURS.map((hour) => (
+                <div
+                  key={hour}
+                  className="h-16 border-t border-[color-mix(in_srgb,#201e1d_14%,transparent)] px-2 pt-1 text-[11px] tabular-nums text-[color-mix(in_srgb,#201e1d_55%,transparent)]"
+                >
+                  {`${String(hour).padStart(2, '0')}:00`}
+                </div>
+              ))}
+            </div>
+            <div className="relative border-l-2 border-[color-mix(in_srgb,#201e1d_28%,transparent)]">
+              {DAY_CALENDAR_HOURS.map((hour) => (
+                <div
+                  key={hour}
+                  className="h-16 border-t border-[color-mix(in_srgb,#201e1d_14%,transparent)]"
+                />
+              ))}
+              {day.map((occurrence) => (
+                <DayCalendarBlock
+                  key={`${occurrence.eventId}-${occurrence.start}`}
+                  occurrence={occurrence}
+                />
+              ))}
+              {isToday ? <DayCalendarNow /> : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

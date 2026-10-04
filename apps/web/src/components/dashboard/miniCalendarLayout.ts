@@ -19,4 +19,4 @@ export function blockBox(startIso: string, endIso: string, hourPx: number): { to
 
 export const MINI_CALENDAR_HOUR_PX = 40;
 export const MINI_CALENDAR_HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-export const MINI_CALENDAR_OPEN_HOUR = 8;
+export const MINI_CALENDAR_OPEN_HOUR = 9;
