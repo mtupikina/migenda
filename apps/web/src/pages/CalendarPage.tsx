@@ -12,6 +12,9 @@ import { MonthCalendar } from '../components/calendar/MonthCalendar';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
 import { NewEventDialog } from '../components/dashboard/NewEventDialog';
 import { useRequireAuth } from '../hooks/useRequireAuth';
+import { dayKey } from '../dashboardDays';
+import { slotEventRange } from '../newEventForm';
+import { DAY_CALENDAR_OPEN_HOUR } from '../components/calendar/dayCalendarLayout';
 
 type CalendarPageProps = {
   view: CalendarView;
@@ -23,6 +26,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const date = parseCalendarDate(dateParam);
   const { data: user, isLoading } = useRequireAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
     queryKey: ['dashboard', range?.from, range?.to],
@@ -44,6 +48,16 @@ export function CalendarPage({ view }: CalendarPageProps) {
 
   const schedule = dashboard.data;
   const showLoader = isLoading || !user || !date;
+  const slotDate = slot ? parseCalendarDate(slot.day) : null;
+  const slotRange = slotDate && slot ? slotEventRange(slotDate, slot.hour) : null;
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setSlot(null);
+  };
+  const openSlot = (day: Date, hour: number) => {
+    setSlot({ day: dayKey(day), hour });
+    setDialogOpen(true);
+  };
 
   return (
     <Box mih="100vh">
@@ -55,25 +69,45 @@ export function CalendarPage({ view }: CalendarPageProps) {
             view={view}
             date={date}
             newEventDisabled={!schedule}
-            onNewEvent={() => setDialogOpen(true)}
+            onNewEvent={() => {
+              setSlot(null);
+              setDialogOpen(true);
+            }}
           />
         ) : null}
         {dashboard.isError ? <Text mt={16}>Could not load your schedule.</Text> : null}
         {view === 'day' && date && schedule ? (
-          <DayCalendar occurrences={schedule.occurrences} date={date} />
+          <DayCalendar
+            occurrences={schedule.occurrences}
+            date={date}
+            selectedHour={slot && slot.day === dayKey(date) ? slot.hour : null}
+            onSelectHour={(hour) => openSlot(date, hour)}
+          />
         ) : null}
         {view === 'week' && date && schedule ? (
-          <WeekCalendar occurrences={schedule.occurrences} date={date} />
+          <WeekCalendar
+            occurrences={schedule.occurrences}
+            date={date}
+            selectedDay={slot?.day ?? null}
+            selectedHour={slot?.hour ?? null}
+            onSelectSlot={openSlot}
+          />
         ) : null}
         {view === 'month' && date && schedule ? (
-          <MonthCalendar occurrences={schedule.occurrences} date={date} />
+          <MonthCalendar
+            occurrences={schedule.occurrences}
+            date={date}
+            selectedDay={slot?.day ?? null}
+            onSelectDay={(day) => openSlot(day, DAY_CALENDAR_OPEN_HOUR)}
+          />
         ) : null}
         {schedule ? (
           <NewEventDialog
             opened={dialogOpen}
             types={schedule.types}
             assignees={schedule.assignees}
-            onClose={() => setDialogOpen(false)}
+            initialRange={slotRange}
+            onClose={closeDialog}
           />
         ) : null}
       </Box>

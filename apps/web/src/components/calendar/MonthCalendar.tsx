@@ -10,9 +10,11 @@ import { MonthCalendarWeekdays } from './MonthCalendarWeekdays';
 type MonthCalendarProps = {
   occurrences: Occurrence[];
   date: Date;
+  selectedDay: string | null;
+  onSelectDay: (day: Date) => void;
 };
 
-export function MonthCalendar({ occurrences, date }: MonthCalendarProps) {
+export function MonthCalendar({ occurrences, date, selectedDay, onSelectDay }: MonthCalendarProps) {
   const days = monthGridDays(date);
 
   return (
@@ -28,6 +30,8 @@ export function MonthCalendar({ occurrences, date }: MonthCalendarProps) {
               month={date}
               occurrences={occurrences}
               index={index}
+              selected={selectedDay === dayKey(day)}
+              onSelect={() => onSelectDay(day)}
             />
           ))}
         </div>

@@ -15,6 +15,7 @@ type NewEventFormProps = {
   types: EventType[];
   assignees: AssigneeOption[];
   initialTypeId: string | null;
+  initialRange?: { start: string; end: string } | null;
   onCreateType: () => void;
   onCreated: () => void;
   onCancel: () => void;
@@ -24,12 +25,13 @@ export function NewEventForm({
   types,
   assignees,
   initialTypeId,
+  initialRange,
   onCreateType,
   onCreated,
   onCancel,
 }: NewEventFormProps) {
   const queryClient = useQueryClient();
-  const range = defaultEventRange();
+  const range = initialRange ?? defaultEventRange();
   const mutation = useMutation({
     mutationFn: createEvent,
     onSuccess: async () => {

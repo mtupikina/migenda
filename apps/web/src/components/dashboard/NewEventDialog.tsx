@@ -9,10 +9,17 @@ type NewEventDialogProps = {
   opened: boolean;
   types: EventType[];
   assignees: AssigneeOption[];
+  initialRange?: { start: string; end: string } | null;
   onClose: () => void;
 };
 
-export function NewEventDialog({ opened, types, assignees, onClose }: NewEventDialogProps) {
+export function NewEventDialog({
+  opened,
+  types,
+  assignees,
+  initialRange,
+  onClose,
+}: NewEventDialogProps) {
   const [creatingType, setCreatingType] = useState(false);
   const [typeId, setTypeId] = useState<string | null>(null);
   const waitingForFirstType = types.length === 0 && typeId === null;
@@ -51,10 +58,11 @@ export function NewEventDialog({ opened, types, assignees, onClose }: NewEventDi
         />
       ) : (
         <NewEventForm
-          key={typeId ?? 'event'}
+          key={`${typeId ?? 'event'}-${initialRange?.start ?? 'now'}`}
           types={types}
           assignees={assignees}
           initialTypeId={typeId}
+          initialRange={initialRange}
           onCreateType={() => setCreatingType(true)}
           onCreated={onClose}
           onCancel={onClose}

@@ -13,9 +13,18 @@ import { WEEK_CALENDAR_HOUR_PX, WEEK_CALENDAR_OPEN_HOUR } from './weekCalendarLa
 type WeekCalendarProps = {
   occurrences: Occurrence[];
   date: Date;
+  selectedDay: string | null;
+  selectedHour: number | null;
+  onSelectSlot: (day: Date, hour: number) => void;
 };
 
-export function WeekCalendar({ occurrences, date }: WeekCalendarProps) {
+export function WeekCalendar({
+  occurrences,
+  date,
+  selectedDay,
+  selectedHour,
+  onSelectSlot,
+}: WeekCalendarProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const days = weekDays(date);
 
@@ -50,7 +59,13 @@ export function WeekCalendar({ occurrences, date }: WeekCalendarProps) {
               ))}
             </div>
             {days.map((day) => (
-              <WeekCalendarColumn key={dayKey(day)} date={day} occurrences={occurrences} />
+              <WeekCalendarColumn
+                key={dayKey(day)}
+                date={day}
+                occurrences={occurrences}
+                selectedHour={selectedDay === dayKey(day) ? selectedHour : null}
+                onSelectHour={(hour) => onSelectSlot(day, hour)}
+              />
             ))}
           </div>
         </div>

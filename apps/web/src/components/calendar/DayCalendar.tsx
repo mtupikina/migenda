@@ -6,6 +6,7 @@ import { dashboardPanelClassName } from '../../classNames/shared';
 import { DayCalendarBlock } from './DayCalendarBlock';
 import { DayCalendarLegend } from './DayCalendarLegend';
 import { DayCalendarNow } from './DayCalendarNow';
+import { DayCalendarSlot } from './DayCalendarSlot';
 import {
   DAY_CALENDAR_HOUR_PX,
   DAY_CALENDAR_HOURS,
@@ -15,9 +16,11 @@ import {
 type DayCalendarProps = {
   occurrences: Occurrence[];
   date: Date;
+  selectedHour: number | null;
+  onSelectHour: (hour: number) => void;
 };
 
-export function DayCalendar({ occurrences, date }: DayCalendarProps) {
+export function DayCalendar({ occurrences, date, selectedHour, onSelectHour }: DayCalendarProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const day = occurrencesOn(occurrences, dayKey(date));
   const isToday = dayKey(date) === dayKey(new Date());
@@ -48,9 +51,11 @@ export function DayCalendar({ occurrences, date }: DayCalendarProps) {
             </div>
             <div className="relative border-l-2 border-[color-mix(in_srgb,#201e1d_28%,transparent)]">
               {DAY_CALENDAR_HOURS.map((hour) => (
-                <div
+                <DayCalendarSlot
                   key={hour}
-                  className="h-16 border-t border-[color-mix(in_srgb,#201e1d_14%,transparent)]"
+                  hour={hour}
+                  selected={hour === selectedHour}
+                  onSelect={onSelectHour}
                 />
               ))}
               {day.map((occurrence) => (

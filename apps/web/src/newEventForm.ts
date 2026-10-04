@@ -53,3 +53,12 @@ export function defaultEventRange(): { start: string; end: string } {
     end: format(addHours(start, 1), "yyyy-MM-dd'T'HH:mm"),
   };
 }
+
+export function slotEventRange(day: Date, hour: number): { start: string; end: string } {
+  const start = new Date(day);
+  start.setHours(hour, 0, 0, 0);
+  return {
+    start: format(start, "yyyy-MM-dd'T'HH:mm"),
+    end: format(addHours(start, 1), "yyyy-MM-dd'T'HH:mm"),
+  };
+}

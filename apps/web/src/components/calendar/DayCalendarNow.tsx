@@ -17,14 +17,14 @@ export function DayCalendarNow() {
   return (
     <>
       <span
-        className="absolute z-20 w-12 -translate-y-1/2 text-right text-[11px] font-semibold text-accent"
+        className="pointer-events-none absolute z-20 w-12 -translate-y-1/2 text-right text-[11px] font-semibold text-accent"
         style={{ top, left: -56 }}
       >
         {format(now, 'HH:mm')}
       </span>
-      <span className="absolute right-2 left-2 z-20 h-0.5 bg-accent" style={{ top }} />
+      <span className="pointer-events-none absolute right-2 left-2 z-20 h-0.5 bg-accent" style={{ top }} />
       <span
-        className="absolute right-3 z-20 -translate-y-1/2 rounded-full border border-accent bg-white px-3 py-1 text-[12px] font-semibold text-accent"
+        className="pointer-events-none absolute right-3 z-20 -translate-y-1/2 rounded-full border border-accent bg-white px-3 py-1 text-[12px] font-semibold text-accent"
         style={{ top }}
       >
         Current time
