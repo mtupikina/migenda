@@ -7,6 +7,7 @@ import { dayKey, occurrencesOn } from '../../dashboardDays';
 import { MonthCalendarChip } from './MonthCalendarChip';
 import { MonthCalendarMore } from './MonthCalendarMore';
 import { MONTH_CALENDAR_CHIP_LIMIT, monthCellFrameClass } from './monthCalendarLayout';
+import { occurrenceKey, useBookingSelection } from './useBookingActions';
 
 type MonthCalendarCellProps = {
   date: Date;
@@ -15,9 +16,19 @@ type MonthCalendarCellProps = {
   index: number;
   selected: boolean;
   onSelect: () => void;
+  onClearSlot: () => void;
 };
 
-export function MonthCalendarCell({ date, month, occurrences, index, selected, onSelect }: MonthCalendarCellProps) {
+export function MonthCalendarCell({
+  date,
+  month,
+  occurrences,
+  index,
+  selected,
+  onSelect,
+  onClearSlot,
+}: MonthCalendarCellProps) {
+  const booking = useBookingSelection();
   const events = occurrencesOn(occurrences, dayKey(date));
   const visible = events.slice(0, MONTH_CALENDAR_CHIP_LIMIT);
   const outside = format(date, 'yyyy-MM') !== format(month, 'yyyy-MM');
@@ -44,9 +55,21 @@ export function MonthCalendarCell({ date, month, occurrences, index, selected, o
         <Link to={calendarPath('day', date)} className={`mb-1 block no-underline hover:text-accent ${numberClass}`}>
           {format(date, 'd')}
         </Link>
-        {visible.map((occurrence) => (
-          <MonthCalendarChip key={`${occurrence.eventId}-${occurrence.start}`} occurrence={occurrence} />
-        ))}
+        {visible.map((occurrence) => {
+          const key = occurrenceKey(occurrence);
+          const picked = key === booking.selectedKey;
+          return (
+            <MonthCalendarChip
+              key={key}
+              occurrence={occurrence}
+              selected={picked}
+              onSelect={(anchor) => {
+                onClearSlot();
+                booking.select(key, anchor);
+              }}
+            />
+          );
+        })}
         <MonthCalendarMore count={events.length - visible.length} date={date} />
       </div>
     </div>

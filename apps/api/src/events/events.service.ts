@@ -11,13 +11,16 @@ import type { AssigneeOption, Dashboard, EventType as EventTypeDto } from '@mige
 import { userFullName } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
 import { UserDocument } from '../auth/user.schema';
+import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventDto } from './create-event.dto';
+import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
 import { EventException, EventExceptionDocument } from './event-exception.schema';
 import { assertSchedule, assertTimeZone, uniqueWeekdays } from './event-rules';
 import { CalendarEvent, CalendarEventDocument } from './event.schema';
 import { EventType, EventTypeDocument } from './event-type.schema';
 import { expandEvent } from './expand-event';
+import { shiftYmd, zonedLocalToUtc, zonedParts, zonedYmd } from './zoned-time';
 
 @Injectable()
 export class EventsService {
@@ -124,6 +127,54 @@ export class EventsService {
     return { id: String(created._id) };
   }
 
+  async duplicateEvent(sid: string, eventId: string, dto: DuplicateEventDto): Promise<{ start: string }> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    const start = new Date(dto.occurrenceStart);
+    const end = new Date(dto.occurrenceEnd);
+    if (!(end > start)) {
+      throw new BadRequestException('End must be after the start');
+    }
+    assertTimeZone(event.timeZone);
+    const clock = zonedParts(start, event.timeZone);
+    const copyStart = zonedLocalToUtc(
+      shiftYmd(zonedYmd(start, event.timeZone), 1),
+      Number(clock.hour),
+      Number(clock.minute),
+      event.timeZone,
+    );
+    const copyEnd = new Date(copyStart.getTime() + (end.getTime() - start.getTime()));
+    await this.events.create({
+      userId: user._id,
+      assigneeId: user._id,
+      typeId: event.typeId,
+      title: event.title,
+      description: event.description,
+      start: copyStart,
+      end: copyEnd,
+      timeZone: event.timeZone,
+      weekdays: [],
+      until: null,
+    });
+    return { start: copyStart.toISOString() };
+  }
+
+  async completeEvent(sid: string, eventId: string, dto: CompleteEventDto): Promise<{ completed: true }> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    const start = new Date(dto.occurrenceStart);
+    const matches = this.occurrenceAt(event, start);
+    if (!matches) {
+      throw new NotFoundException('Choose a task');
+    }
+    await this.exceptions.updateOne(
+      { eventId: event._id, occurrenceStart: start },
+      { $set: { completed: true } },
+      { upsert: true },
+    );
+    return { completed: true };
+  }
+
   async createType(sid: string, dto: CreateEventTypeDto): Promise<EventTypeDto> {
     const user = await this.auth.resolveUserFromSession(sid);
     const existing = await this.types
@@ -147,6 +198,32 @@ export class EventsService {
       return;
     }
     throw new BadRequestException('You can only assign a task to yourself until you have a team');
+  }
+
+  private async ownedEvent(user: UserDocument, eventId: string): Promise<CalendarEventDocument> {
+    if (!Types.ObjectId.isValid(eventId)) {
+      throw new NotFoundException('Choose a task');
+    }
+    const event = await this.events.findOne({ _id: eventId, assigneeId: user._id }).exec();
+    if (!event) {
+      throw new NotFoundException('Choose a task');
+    }
+    return event;
+  }
+
+  private occurrenceAt(event: CalendarEventDocument, start: Date): boolean {
+    return expandEvent(
+      {
+        id: String(event._id),
+        start: event.start,
+        end: event.end,
+        timeZone: event.timeZone,
+        weekdays: event.weekdays,
+        until: event.until,
+      },
+      new Date(start.getTime() - 1),
+      new Date(start.getTime() + 1),
+    ).some((item) => item.start.getTime() === start.getTime());
   }
 
   private async assertOwnedType(user: UserDocument, typeId: string): Promise<void> {

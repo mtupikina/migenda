@@ -6,16 +6,19 @@ import { dayKey } from '../../dashboardDays';
 import { DayCalendarLegend } from './DayCalendarLegend';
 import { MonthCalendarCell } from './MonthCalendarCell';
 import { MonthCalendarWeekdays } from './MonthCalendarWeekdays';
+import { useBookingSelection } from './useBookingActions';
 
 type MonthCalendarProps = {
   occurrences: Occurrence[];
   date: Date;
   selectedDay: string | null;
   onSelectDay: (day: Date) => void;
+  onClearSlot: () => void;
 };
 
-export function MonthCalendar({ occurrences, date, selectedDay, onSelectDay }: MonthCalendarProps) {
+export function MonthCalendar({ occurrences, date, selectedDay, onSelectDay, onClearSlot }: MonthCalendarProps) {
   const days = monthGridDays(date);
+  const booking = useBookingSelection();
 
   return (
     <div className="mt-6">
@@ -31,7 +34,11 @@ export function MonthCalendar({ occurrences, date, selectedDay, onSelectDay }: M
               occurrences={occurrences}
               index={index}
               selected={selectedDay === dayKey(day)}
-              onSelect={() => onSelectDay(day)}
+              onSelect={() => {
+                booking.clear();
+                onSelectDay(day);
+              }}
+              onClearSlot={onClearSlot}
             />
           ))}
         </div>

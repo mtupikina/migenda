@@ -9,6 +9,7 @@ import { WeekCalendarColumn } from './WeekCalendarColumn';
 import { WeekCalendarDayHeader } from './WeekCalendarDayHeader';
 import { DAY_CALENDAR_HOURS } from './dayCalendarLayout';
 import { WEEK_CALENDAR_HOUR_PX, WEEK_CALENDAR_OPEN_HOUR } from './weekCalendarLayout';
+import { useBookingSelection } from './useBookingActions';
 
 type WeekCalendarProps = {
   occurrences: Occurrence[];
@@ -16,6 +17,7 @@ type WeekCalendarProps = {
   selectedDay: string | null;
   selectedHour: number | null;
   onSelectSlot: (day: Date, hour: number) => void;
+  onClearSlot: () => void;
 };
 
 export function WeekCalendar({
@@ -24,9 +26,12 @@ export function WeekCalendar({
   selectedDay,
   selectedHour,
   onSelectSlot,
+  onClearSlot,
 }: WeekCalendarProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const days = weekDays(date);
+  const weekKey = dayKey(days[0]);
+  const booking = useBookingSelection();
 
   useLayoutEffect(() => {
     const node = scroller.current;
@@ -34,7 +39,7 @@ export function WeekCalendar({
       return;
     }
     node.scrollTop = WEEK_CALENDAR_OPEN_HOUR * WEEK_CALENDAR_HOUR_PX;
-  }, [date]);
+  }, [weekKey]);
 
   return (
     <div className="mt-6">
@@ -64,7 +69,11 @@ export function WeekCalendar({
                 date={day}
                 occurrences={occurrences}
                 selectedHour={selectedDay === dayKey(day) ? selectedHour : null}
-                onSelectHour={(hour) => onSelectSlot(day, hour)}
+                onSelectHour={(hour) => {
+                  booking.clear();
+                  onSelectSlot(day, hour);
+                }}
+                onClearSlot={onClearSlot}
               />
             ))}
           </div>

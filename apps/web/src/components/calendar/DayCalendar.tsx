@@ -12,18 +12,22 @@ import {
   DAY_CALENDAR_HOURS,
   DAY_CALENDAR_OPEN_HOUR,
 } from './dayCalendarLayout';
+import { occurrenceKey, useBookingSelection } from './useBookingActions';
 
 type DayCalendarProps = {
   occurrences: Occurrence[];
   date: Date;
   selectedHour: number | null;
   onSelectHour: (hour: number) => void;
+  onClearHour: () => void;
 };
 
-export function DayCalendar({ occurrences, date, selectedHour, onSelectHour }: DayCalendarProps) {
+export function DayCalendar({ occurrences, date, selectedHour, onSelectHour, onClearHour }: DayCalendarProps) {
   const scroller = useRef<HTMLDivElement>(null);
-  const day = occurrencesOn(occurrences, dayKey(date));
-  const isToday = dayKey(date) === dayKey(new Date());
+  const viewedDay = dayKey(date);
+  const day = occurrencesOn(occurrences, viewedDay);
+  const isToday = viewedDay === dayKey(new Date());
+  const booking = useBookingSelection();
 
   useLayoutEffect(() => {
     const node = scroller.current;
@@ -31,7 +35,7 @@ export function DayCalendar({ occurrences, date, selectedHour, onSelectHour }: D
       return;
     }
     node.scrollTop = DAY_CALENDAR_OPEN_HOUR * DAY_CALENDAR_HOUR_PX;
-  }, [date]);
+  }, [viewedDay]);
 
   return (
     <div className="mx-auto mt-6 max-w-[520px]">
@@ -55,15 +59,26 @@ export function DayCalendar({ occurrences, date, selectedHour, onSelectHour }: D
                   key={hour}
                   hour={hour}
                   selected={hour === selectedHour}
-                  onSelect={onSelectHour}
+                  onSelect={(hour) => {
+                    booking.clear();
+                    onSelectHour(hour);
+                  }}
                 />
               ))}
-              {day.map((occurrence) => (
-                <DayCalendarBlock
-                  key={`${occurrence.eventId}-${occurrence.start}`}
-                  occurrence={occurrence}
-                />
-              ))}
+              {day.map((occurrence) => {
+                const key = occurrenceKey(occurrence);
+                return (
+                  <DayCalendarBlock
+                    key={key}
+                    occurrence={occurrence}
+                    selected={key === booking.selectedKey}
+                    onSelect={(anchor) => {
+                      onClearHour();
+                      booking.select(key, anchor);
+                    }}
+                  />
+                );
+              })}
               {isToday ? <DayCalendarNow /> : null}
             </div>
           </div>

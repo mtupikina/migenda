@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 
 import { SESSION_COOKIE } from '../auth/auth.constants';
+import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventDto } from './create-event.dto';
+import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
 import { DashboardQueryDto } from './dashboard-query.dto';
 import { EventsService } from './events.service';
@@ -21,6 +23,16 @@ export class EventsController {
     return this.events.createEvent(sessionId(req), dto);
   }
 
+  @Post('events/:eventId/duplicate')
+  duplicateEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: DuplicateEventDto) {
+    return this.events.duplicateEvent(sessionId(req), eventId, dto);
+  }
+
+  @Post('events/:eventId/complete')
+  completeEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: CompleteEventDto) {
+    return this.events.completeEvent(sessionId(req), eventId, dto);
+  }
+
   @Post('event-types')
   createType(@Req() req: Request, @Body() dto: CreateEventTypeDto) {
     return this.events.createType(sessionId(req), dto);
@@ -34,3 +46,4 @@ function sessionId(req: Request): string {
   }
   return sid;
 }
+

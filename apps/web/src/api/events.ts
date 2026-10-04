@@ -21,6 +21,35 @@ export async function fetchDashboard(range: DashboardRange = dashboardRange(new 
   return response.json() as Promise<Dashboard>;
 }
 
+export async function duplicateEvent(
+  eventId: string,
+  occurrenceStart: string,
+  occurrenceEnd: string,
+): Promise<{ start: string }> {
+  const response = await fetch(apiPath(`/events/${eventId}/duplicate`), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ occurrenceStart, occurrenceEnd }),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not duplicate the task.'));
+  }
+  return response.json() as Promise<{ start: string }>;
+}
+
+export async function completeEvent(eventId: string, occurrenceStart: string): Promise<void> {
+  const response = await fetch(apiPath(`/events/${eventId}/complete`), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ occurrenceStart }),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not complete the task.'));
+  }
+}
+
 export async function createEvent(input: CreateEventInput): Promise<void> {
   const response = await fetch(apiPath('/events'), {
     method: 'POST',

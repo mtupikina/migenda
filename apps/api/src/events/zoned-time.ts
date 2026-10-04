@@ -33,6 +33,13 @@ export function zonedParts(date: Date, timeZone: string): ZonedParts {
   };
 }
 
+export function shiftYmd(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split('-').map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return utc.toISOString().slice(0, 10);
+}
+
 export function zonedYmd(date: Date, timeZone: string): string {
   const parts = zonedParts(date, timeZone);
   return `${parts.year}-${parts.month}-${parts.day}`;

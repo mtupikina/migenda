@@ -7,6 +7,7 @@ import { fetchDashboard } from '../api/events';
 import { calendarPath, calendarRange, parseCalendarDate, type CalendarView } from '../calendarPeriod';
 import { AppNav } from '../components/AppNav';
 import { CalendarToolbar } from '../components/calendar/CalendarToolbar';
+import { BookingActionsProvider } from '../components/calendar/BookingActionsProvider';
 import { DayCalendar } from '../components/calendar/DayCalendar';
 import { MonthCalendar } from '../components/calendar/MonthCalendar';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
@@ -76,30 +77,41 @@ export function CalendarPage({ view }: CalendarPageProps) {
           />
         ) : null}
         {dashboard.isError ? <Text mt={16}>Could not load your schedule.</Text> : null}
-        {view === 'day' && date && schedule ? (
-          <DayCalendar
+        {date && schedule ? (
+          <BookingActionsProvider
+            resetKey={`${view}-${dateParam ?? ''}`}
             occurrences={schedule.occurrences}
-            date={date}
-            selectedHour={slot && slot.day === dayKey(date) ? slot.hour : null}
-            onSelectHour={(hour) => openSlot(date, hour)}
-          />
-        ) : null}
-        {view === 'week' && date && schedule ? (
-          <WeekCalendar
-            occurrences={schedule.occurrences}
-            date={date}
-            selectedDay={slot?.day ?? null}
-            selectedHour={slot?.hour ?? null}
-            onSelectSlot={openSlot}
-          />
-        ) : null}
-        {view === 'month' && date && schedule ? (
-          <MonthCalendar
-            occurrences={schedule.occurrences}
-            date={date}
-            selectedDay={slot?.day ?? null}
-            onSelectDay={(day) => openSlot(day, DAY_CALENDAR_OPEN_HOUR)}
-          />
+            dismissed={dialogOpen}
+          >
+            {view === 'day' ? (
+              <DayCalendar
+                occurrences={schedule.occurrences}
+                date={date}
+                selectedHour={slot && slot.day === dayKey(date) ? slot.hour : null}
+                onSelectHour={(hour) => openSlot(date, hour)}
+                onClearHour={() => setSlot(null)}
+              />
+            ) : null}
+            {view === 'week' ? (
+              <WeekCalendar
+                occurrences={schedule.occurrences}
+                date={date}
+                selectedDay={slot?.day ?? null}
+                selectedHour={slot?.hour ?? null}
+                onSelectSlot={openSlot}
+                onClearSlot={() => setSlot(null)}
+              />
+            ) : null}
+            {view === 'month' ? (
+              <MonthCalendar
+                occurrences={schedule.occurrences}
+                date={date}
+                selectedDay={slot?.day ?? null}
+                onSelectDay={(day) => openSlot(day, DAY_CALENDAR_OPEN_HOUR)}
+                onClearSlot={() => setSlot(null)}
+              />
+            ) : null}
+          </BookingActionsProvider>
         ) : null}
         {schedule ? (
           <NewEventDialog
