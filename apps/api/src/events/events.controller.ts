@@ -3,6 +3,7 @@ import { Request } from 'express';
 
 import { SESSION_COOKIE } from '../auth/auth.constants';
 import { CompleteEventDto } from './complete-event.dto';
+import { CreateEventNoteDto } from './create-event-note.dto';
 import { DeleteEventDto } from './delete-event.dto';
 import { CreateEventDto } from './create-event.dto';
 import { DuplicateEventDto } from './duplicate-event.dto';
@@ -37,6 +38,20 @@ export class EventsController {
   @Patch('events/:eventId')
   updateEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: UpdateEventDto) {
     return this.events.updateEvent(sessionId(req), eventId, dto);
+  }
+
+  @Get('events/:eventId/notes')
+  listNotes(
+    @Req() req: Request,
+    @Param('eventId') eventId: string,
+    @Query('occurrenceStart') occurrenceStart?: string,
+  ) {
+    return this.events.listNotes(sessionId(req), eventId, occurrenceStart);
+  }
+
+  @Post('events/:eventId/notes')
+  createNote(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: CreateEventNoteDto) {
+    return this.events.createNote(sessionId(req), eventId, dto);
   }
 
   @Post('events/:eventId/delete')

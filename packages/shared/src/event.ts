@@ -120,6 +120,15 @@ export type DeleteEventScope = z.infer<typeof deleteEventScopeSchema>;
 
 export type Occurrence = z.infer<typeof occurrenceSchema>;
 
+export const eventNoteSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  authorName: z.string(),
+  createdAt: z.string(),
+});
+
+export type EventNote = z.infer<typeof eventNoteSchema>;
+
 export const dashboardSchema = z.object({
   occurrences: z.array(occurrenceSchema),
   types: z.array(eventTypeSchema),

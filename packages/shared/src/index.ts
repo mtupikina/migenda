@@ -11,6 +11,7 @@ export {
   dashboardSchema,
   deleteEventScopeSchema,
   eventDetailSchema,
+  eventNoteSchema,
   eventTypeSchema,
   occurrenceSchema,
   type AssigneeOption,
@@ -19,6 +20,7 @@ export {
   type Dashboard,
   type DeleteEventScope,
   type EventDetail,
+  type EventNote,
   type EventType,
   type Occurrence,
 } from './event';

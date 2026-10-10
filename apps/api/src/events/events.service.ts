@@ -7,16 +7,18 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import type { AssigneeOption, Dashboard, EventDetail, EventType as EventTypeDto } from '@migenda/shared';
+import type { AssigneeOption, Dashboard, EventDetail, EventNote as EventNoteDto, EventType as EventTypeDto } from '@migenda/shared';
 import { userFullName } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
 import { UserDocument } from '../auth/user.schema';
 import { CompleteEventDto } from './complete-event.dto';
+import { CreateEventNoteDto } from './create-event-note.dto';
 import { DeleteEventDto } from './delete-event.dto';
 import { CreateEventDto } from './create-event.dto';
 import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
 import { EventException, EventExceptionDocument } from './event-exception.schema';
+import { EventNote, EventNoteDocument } from './event-note.schema';
 import { assertSchedule, assertTimeZone, uniqueWeekdays } from './event-rules';
 import { CalendarEvent, CalendarEventDocument } from './event.schema';
 import { EventType, EventTypeDocument } from './event-type.schema';
@@ -31,6 +33,7 @@ export class EventsService {
     @InjectModel(CalendarEvent.name) private readonly events: Model<CalendarEventDocument>,
     @InjectModel(EventType.name) private readonly types: Model<EventTypeDocument>,
     @InjectModel(EventException.name) private readonly exceptions: Model<EventExceptionDocument>,
+    @InjectModel(EventNote.name) private readonly eventNotes: Model<EventNoteDocument>,
   ) {}
 
   async dashboard(sid: string, fromIso: string, toIso: string): Promise<Dashboard> {
@@ -188,6 +191,28 @@ export class EventsService {
     return { id: String(event._id) };
   }
 
+  async listNotes(sid: string, eventId: string, occurrenceStart: string | undefined): Promise<EventNoteDto[]> {
+    const { event, start } = await this.ownedOccurrence(sid, eventId, occurrenceStart);
+    const notes = await this.eventNotes
+      .find({ eventId: event._id, occurrenceStart: start })
+      .sort({ createdAt: -1 })
+      .exec();
+    return notes.map(toEventNote);
+  }
+
+  async createNote(sid: string, eventId: string, dto: CreateEventNoteDto): Promise<EventNoteDto> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const { event, start } = await this.ownedOccurrence(sid, eventId, dto.occurrenceStart);
+    const note = await this.eventNotes.create({
+      eventId: event._id,
+      occurrenceStart: start,
+      authorId: user._id,
+      authorName: noteAuthorName(user),
+      text: dto.text,
+    });
+    return toEventNote(note);
+  }
+
   async deleteEvent(sid: string, eventId: string, dto: DeleteEventDto): Promise<void> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
@@ -295,11 +320,13 @@ export class EventsService {
   }
 
   private async deleteSeries(event: CalendarEventDocument): Promise<void> {
+    await this.eventNotes.deleteMany({ eventId: event._id }).exec();
     await this.exceptions.deleteMany({ eventId: event._id }).exec();
     await this.events.deleteOne({ _id: event._id }).exec();
   }
 
   private async deleteOneOccurrence(event: CalendarEventDocument, start: Date): Promise<void> {
+    await this.eventNotes.deleteMany({ eventId: event._id, occurrenceStart: start }).exec();
     await this.exceptions.updateOne(
       { eventId: event._id, occurrenceStart: start },
       { $set: { deleted: true }, $setOnInsert: { completed: false } },
@@ -317,6 +344,22 @@ export class EventsService {
     event.until = earlierUntil(event.until, dayBefore);
     await event.save();
     await this.exceptions.deleteMany({ eventId: event._id, occurrenceStart: { $gte: start } }).exec();
+    await this.eventNotes.deleteMany({ eventId: event._id, occurrenceStart: { $gte: start } }).exec();
+  }
+
+  private async ownedOccurrence(
+    sid: string,
+    eventId: string,
+    occurrenceStart: string | undefined,
+  ): Promise<{ event: CalendarEventDocument; start: Date }> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    const start = this.occurrenceInstant(occurrenceStart);
+    if (!start) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    this.assertOccurrence(event, start);
+    return { event, start };
   }
 
   private occurrenceInstant(value: string | undefined): Date | null {
@@ -402,6 +445,23 @@ export class EventsService {
       throw new NotFoundException('Choose a type');
     }
   }
+}
+
+function noteAuthorName(user: UserDocument): string {
+  const name = userFullName(user);
+  if (name) {
+    return name;
+  }
+  return user.email;
+}
+
+function toEventNote(note: EventNoteDocument): EventNoteDto {
+  return {
+    id: String(note._id),
+    text: note.text,
+    authorName: note.authorName,
+    createdAt: note.createdAt.toISOString(),
+  };
 }
 
 function earlierUntil(current: string | null, dayBefore: string): string {

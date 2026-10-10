@@ -4,6 +4,7 @@ import type {
   Dashboard,
   DeleteEventScope,
   EventDetail,
+  EventNote,
   EventType,
 } from '@migenda/shared';
 
@@ -26,6 +27,30 @@ export async function fetchDashboard(range: DashboardRange = dashboardRange(new 
     throw new ScheduleRequestError('Could not load your schedule.');
   }
   return response.json() as Promise<Dashboard>;
+}
+
+export async function fetchNotes(eventId: string, occurrenceStart: string): Promise<EventNote[]> {
+  const params = new URLSearchParams({ occurrenceStart });
+  const response = await fetch(apiPath(`/events/${eventId}/notes?${params.toString()}`), {
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not load notes.'));
+  }
+  return response.json() as Promise<EventNote[]>;
+}
+
+export async function createNote(eventId: string, occurrenceStart: string, text: string): Promise<EventNote> {
+  const response = await fetch(apiPath(`/events/${eventId}/notes`), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ occurrenceStart, text }),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not save the note.'));
+  }
+  return response.json() as Promise<EventNote>;
 }
 
 export async function deleteEvent(
