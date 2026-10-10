@@ -8,6 +8,7 @@ type BookingActionsMenuProps = {
   toast: string | null;
   onComplete: () => void;
   onDuplicate: () => void;
+  onEdit: () => void;
 };
 
 export function BookingActionsMenu({
@@ -17,6 +18,7 @@ export function BookingActionsMenu({
   toast,
   onComplete,
   onDuplicate,
+  onEdit,
 }: BookingActionsMenuProps) {
   const completeLabel = occurrence.completed ? 'Completed' : 'Complete';
 
@@ -38,7 +40,7 @@ export function BookingActionsMenu({
         </button>
       </div>
       <div className="flex gap-1.5">
-        <button type="button" className={outlineClass}>
+        <button type="button" className={outlineClass} onClick={onEdit}>
           Edit
         </button>
         <button

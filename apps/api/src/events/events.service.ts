@@ -7,7 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import type { AssigneeOption, Dashboard, EventType as EventTypeDto } from '@migenda/shared';
+import type { AssigneeOption, Dashboard, EventDetail, EventType as EventTypeDto } from '@migenda/shared';
 import { userFullName } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
 import { UserDocument } from '../auth/user.schema';
@@ -127,6 +127,36 @@ export class EventsService {
     return { id: String(created._id) };
   }
 
+  async getEvent(sid: string, eventId: string): Promise<EventDetail> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    return toEventDetail(event);
+  }
+
+  async updateEvent(sid: string, eventId: string, dto: CreateEventDto): Promise<{ id: string }> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    assertTimeZone(dto.timeZone);
+    const start = new Date(dto.start);
+    const end = new Date(dto.end);
+    const weekdays = uniqueWeekdays(dto.weekdays);
+    assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
+    this.assertAssignee(user, dto.assigneeId);
+    await this.assertOwnedType(user, dto.typeId);
+
+    event.title = dto.title;
+    event.typeId = new Types.ObjectId(dto.typeId);
+    event.assigneeId = user._id;
+    event.description = dto.description;
+    event.start = start;
+    event.end = end;
+    event.timeZone = dto.timeZone;
+    event.weekdays = weekdays;
+    event.until = dto.until;
+    await event.save();
+    return { id: String(event._id) };
+  }
+
   async duplicateEvent(sid: string, eventId: string, dto: DuplicateEventDto): Promise<{ start: string }> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
@@ -235,6 +265,21 @@ export class EventsService {
       throw new NotFoundException('Choose a type');
     }
   }
+}
+
+function toEventDetail(event: CalendarEventDocument): EventDetail {
+  return {
+    id: String(event._id),
+    title: event.title,
+    typeId: String(event.typeId),
+    description: event.description,
+    start: event.start.toISOString(),
+    end: event.end.toISOString(),
+    weekdays: event.weekdays,
+    until: event.until,
+    timeZone: event.timeZone,
+    assigneeId: String(event.assigneeId),
+  };
 }
 
 function toEventType(type: EventTypeDocument): EventTypeDto {

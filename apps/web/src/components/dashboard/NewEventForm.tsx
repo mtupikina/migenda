@@ -2,9 +2,9 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { AssigneeOption, EventType } from '@migenda/shared';
+import type { AssigneeOption, CreateEventInput, EventType } from '@migenda/shared';
 
-import { createEvent, ScheduleRequestError } from '../../api/events';
+import { createEvent, ScheduleRequestError, updateEvent } from '../../api/events';
 import { dashboardFieldClassNames } from '../../classNames/shared';
 import { defaultEventRange, newEventFormSchema, type NewEventFormValues } from '../../newEventForm';
 import { EventDateField } from './EventDateField';
@@ -16,6 +16,8 @@ type NewEventFormProps = {
   assignees: AssigneeOption[];
   initialTypeId: string | null;
   initialRange?: { start: string; end: string } | null;
+  eventId?: string | null;
+  values?: NewEventFormValues | null;
   onCreateType: () => void;
   onCreated: () => void;
   onCancel: () => void;
@@ -26,16 +28,39 @@ export function NewEventForm({
   assignees,
   initialTypeId,
   initialRange,
+  eventId = null,
+  values = null,
   onCreateType,
   onCreated,
   onCancel,
 }: NewEventFormProps) {
   const queryClient = useQueryClient();
   const range = initialRange ?? defaultEventRange();
+  const editing = Boolean(eventId);
+  const seeded: NewEventFormValues = values
+    ? { ...values, typeId: initialTypeId ?? values.typeId }
+    : {
+        title: '',
+        typeId: initialTypeId ?? '',
+        assigneeId: assignees[0]?.id ?? '',
+        start: range.start,
+        end: range.end,
+        weekdays: [],
+        until: '',
+        description: '',
+      };
   const mutation = useMutation({
-    mutationFn: createEvent,
+    mutationFn: (input: CreateEventInput) => {
+      if (eventId) {
+        return updateEvent(eventId, input);
+      }
+      return createEvent(input);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (eventId) {
+        await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      }
       onCreated();
     },
   });
@@ -47,16 +72,7 @@ export function NewEventForm({
     formState: { errors },
   } = useForm<NewEventFormValues>({
     resolver: zodResolver(newEventFormSchema),
-    defaultValues: {
-      title: '',
-      typeId: initialTypeId ?? '',
-      assigneeId: assignees[0]?.id ?? '',
-      start: range.start,
-      end: range.end,
-      weekdays: [],
-      until: '',
-      description: '',
-    },
+    defaultValues: seeded,
   });
   const description = watch('description');
 
@@ -183,7 +199,7 @@ export function NewEventForm({
             Cancel
           </Button>
           <Button type="submit" loading={mutation.isPending}>
-            Create event
+            {editing ? 'Save changes' : 'Create event'}
           </Button>
         </Group>
       </Stack>

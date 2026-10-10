@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Modal } from '@mantine/core';
+import { Loader, Modal, Text } from '@mantine/core';
+import { useQuery } from '@tanstack/react-query';
 import type { AssigneeOption, EventType } from '@migenda/shared';
 
+import { fetchEvent } from '../../api/events';
+import { eventToFormValues } from '../../newEventForm';
 import { CreateEventTypeForm } from './CreateEventTypeForm';
 import { NewEventForm } from './NewEventForm';
 
@@ -10,6 +13,7 @@ type NewEventDialogProps = {
   types: EventType[];
   assignees: AssigneeOption[];
   initialRange?: { start: string; end: string } | null;
+  eventId?: string | null;
   onClose: () => void;
 };
 
@@ -18,12 +22,34 @@ export function NewEventDialog({
   types,
   assignees,
   initialRange,
+  eventId = null,
   onClose,
 }: NewEventDialogProps) {
   const [creatingType, setCreatingType] = useState(false);
   const [typeId, setTypeId] = useState<string | null>(null);
+  const editing = Boolean(eventId);
+  const eventQuery = useQuery({
+    queryKey: ['event', eventId],
+    queryFn: () => {
+      if (!eventId) {
+        throw new Error('Missing event');
+      }
+      return fetchEvent(eventId);
+    },
+    enabled: opened && editing,
+  });
   const waitingForFirstType = types.length === 0 && typeId === null;
   const showTypeForm = creatingType || waitingForFirstType;
+  const saved = eventQuery.data ?? null;
+  const formValues = saved ? eventToFormValues(saved, typeId) : null;
+  const eventTitle = editing ? 'Edit event' : 'New event';
+  const title = showTypeForm ? 'New type' : eventTitle;
+  const showLoader = editing && !showTypeForm && eventQuery.isLoading;
+  const showLoadError = editing && !showTypeForm && eventQuery.isError;
+  const showEventForm = !showTypeForm && (!editing || formValues !== null);
+  const formKey = editing
+    ? `${eventId}-${typeId ?? formValues?.typeId ?? 'saved'}`
+    : `${typeId ?? 'event'}-${initialRange?.start ?? 'now'}`;
 
   useEffect(() => {
     if (opened) {
@@ -37,7 +63,7 @@ export function NewEventDialog({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={showTypeForm ? 'New type' : 'New event'}
+      title={title}
       centered
       radius={0}
       classNames={{ body: 'max-h-[70vh] overflow-y-auto' }}
@@ -56,18 +82,23 @@ export function NewEventDialog({
             setCreatingType(false);
           }}
         />
-      ) : (
+      ) : null}
+      {showLoader ? <Loader color="accent" /> : null}
+      {showLoadError ? <Text c="accent.7">Could not load this event.</Text> : null}
+      {showEventForm ? (
         <NewEventForm
-          key={`${typeId ?? 'event'}-${initialRange?.start ?? 'now'}`}
+          key={formKey}
           types={types}
           assignees={assignees}
           initialTypeId={typeId}
           initialRange={initialRange}
+          eventId={eventId}
+          values={formValues}
           onCreateType={() => setCreatingType(true)}
           onCreated={onClose}
           onCancel={onClose}
         />
-      )}
+      ) : null}
     </Modal>
   );
 }

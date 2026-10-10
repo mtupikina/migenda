@@ -8,6 +8,7 @@ type BookingActionsProviderProps = {
   resetKey: string;
   occurrences: Occurrence[];
   dismissed: boolean;
+  onEdit: (eventId: string) => void;
   children: ReactNode;
 };
 
@@ -15,6 +16,7 @@ export function BookingActionsProvider({
   resetKey,
   occurrences,
   dismissed,
+  onEdit,
   children,
 }: BookingActionsProviderProps) {
   const booking = useBookingActions(resetKey);
@@ -48,6 +50,12 @@ export function BookingActionsProvider({
             return;
           }
           booking.duplicate(selected);
+        }}
+        onEdit={() => {
+          if (!selected) {
+            return;
+          }
+          onEdit(selected.eventId);
         }}
       />
     </BookingActionsContext.Provider>

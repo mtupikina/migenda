@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 
 import { SESSION_COOKIE } from '../auth/auth.constants';
@@ -21,6 +21,16 @@ export class EventsController {
   @Post('events')
   createEvent(@Req() req: Request, @Body() dto: CreateEventDto) {
     return this.events.createEvent(sessionId(req), dto);
+  }
+
+  @Get('events/:eventId')
+  getEvent(@Req() req: Request, @Param('eventId') eventId: string) {
+    return this.events.getEvent(sessionId(req), eventId);
+  }
+
+  @Patch('events/:eventId')
+  updateEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: CreateEventDto) {
+    return this.events.updateEvent(sessionId(req), eventId, dto);
   }
 
   @Post('events/:eventId/duplicate')

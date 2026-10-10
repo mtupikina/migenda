@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { addHours, format } from 'date-fns';
-import { EVENT_DESCRIPTION_MAX, EVENT_TITLE_MAX } from '@migenda/shared';
+import { EVENT_DESCRIPTION_MAX, EVENT_TITLE_MAX, type EventDetail } from '@migenda/shared';
 
 export const newEventFormSchema = z
   .object({
@@ -44,6 +44,19 @@ export const newEventFormSchema = z
   });
 
 export type NewEventFormValues = z.infer<typeof newEventFormSchema>;
+
+export function eventToFormValues(event: EventDetail, typeId: string | null): NewEventFormValues {
+  return {
+    title: event.title,
+    typeId: typeId ?? event.typeId,
+    assigneeId: event.assigneeId,
+    start: format(new Date(event.start), "yyyy-MM-dd'T'HH:mm"),
+    end: format(new Date(event.end), "yyyy-MM-dd'T'HH:mm"),
+    weekdays: [...event.weekdays],
+    until: event.until ?? '',
+    description: event.description,
+  };
+}
 
 export function defaultEventRange(): { start: string; end: string } {
   const start = new Date();

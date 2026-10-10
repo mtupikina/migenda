@@ -88,6 +88,21 @@ export const createEventSchema = z
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
+export const eventDetailSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  typeId: z.string(),
+  description: z.string(),
+  start: z.string(),
+  end: z.string(),
+  weekdays: z.array(z.number().int().min(0).max(6)),
+  until: z.string().nullable(),
+  timeZone: z.string(),
+  assigneeId: z.string(),
+});
+
+export type EventDetail = z.infer<typeof eventDetailSchema>;
+
 export const occurrenceSchema = z.object({
   eventId: z.string(),
   start: z.string(),

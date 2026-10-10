@@ -27,6 +27,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const date = parseCalendarDate(dateParam);
   const { data: user, isLoading } = useRequireAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
@@ -54,9 +55,21 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const closeDialog = () => {
     setDialogOpen(false);
     setSlot(null);
+    setEditingEventId(null);
+  };
+  const openCreate = () => {
+    setSlot(null);
+    setEditingEventId(null);
+    setDialogOpen(true);
   };
   const openSlot = (day: Date, hour: number) => {
+    setEditingEventId(null);
     setSlot({ day: dayKey(day), hour });
+    setDialogOpen(true);
+  };
+  const openEdit = (eventId: string) => {
+    setSlot(null);
+    setEditingEventId(eventId);
     setDialogOpen(true);
   };
 
@@ -70,10 +83,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
             view={view}
             date={date}
             newEventDisabled={!schedule}
-            onNewEvent={() => {
-              setSlot(null);
-              setDialogOpen(true);
-            }}
+            onNewEvent={openCreate}
           />
         ) : null}
         {dashboard.isError ? <Text mt={16}>Could not load your schedule.</Text> : null}
@@ -82,6 +92,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
             resetKey={`${view}-${dateParam ?? ''}`}
             occurrences={schedule.occurrences}
             dismissed={dialogOpen}
+            onEdit={openEdit}
           >
             {view === 'day' ? (
               <DayCalendar
@@ -118,7 +129,8 @@ export function CalendarPage({ view }: CalendarPageProps) {
             opened={dialogOpen}
             types={schedule.types}
             assignees={schedule.assignees}
-            initialRange={slotRange}
+            initialRange={editingEventId ? null : slotRange}
+            eventId={editingEventId}
             onClose={closeDialog}
           />
         ) : null}
