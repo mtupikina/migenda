@@ -28,6 +28,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const { data: user, isLoading } = useRequireAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingOccurrenceStart, setEditingOccurrenceStart] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
@@ -56,20 +57,24 @@ export function CalendarPage({ view }: CalendarPageProps) {
     setDialogOpen(false);
     setSlot(null);
     setEditingEventId(null);
+    setEditingOccurrenceStart(null);
   };
   const openCreate = () => {
     setSlot(null);
     setEditingEventId(null);
+    setEditingOccurrenceStart(null);
     setDialogOpen(true);
   };
   const openSlot = (day: Date, hour: number) => {
     setEditingEventId(null);
+    setEditingOccurrenceStart(null);
     setSlot({ day: dayKey(day), hour });
     setDialogOpen(true);
   };
-  const openEdit = (eventId: string) => {
+  const openEdit = (eventId: string, occurrenceStart: string) => {
     setSlot(null);
     setEditingEventId(eventId);
+    setEditingOccurrenceStart(occurrenceStart);
     setDialogOpen(true);
   };
 
@@ -131,6 +136,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
             assignees={schedule.assignees}
             initialRange={editingEventId ? null : slotRange}
             eventId={editingEventId}
+            occurrenceStart={editingOccurrenceStart}
             onClose={closeDialog}
           />
         ) : null}

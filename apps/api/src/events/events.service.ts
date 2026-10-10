@@ -20,6 +20,7 @@ import { assertSchedule, assertTimeZone, uniqueWeekdays } from './event-rules';
 import { CalendarEvent, CalendarEventDocument } from './event.schema';
 import { EventType, EventTypeDocument } from './event-type.schema';
 import { expandEvent } from './expand-event';
+import { UpdateEventDto } from './update-event.dto';
 import { shiftYmd, zonedLocalToUtc, zonedParts, zonedYmd } from './zoned-time';
 
 @Injectable()
@@ -59,10 +60,8 @@ export class EventsService {
       .exec();
 
     const typeById = new Map(typeDocs.map((type) => [String(type._id), type]));
-    const completedKeys = new Set(
-      exceptionDocs
-        .filter((entry) => entry.completed)
-        .map((entry) => exceptionKey(String(entry.eventId), entry.occurrenceStart)),
+    const exceptionByKey = new Map(
+      exceptionDocs.map((entry) => [exceptionKey(String(entry.eventId), entry.occurrenceStart), entry]),
     );
 
     const occurrences = rules.flatMap((rule) => {
@@ -81,15 +80,18 @@ export class EventsService {
       );
       return expanded
         .filter((item) => item.start >= from && item.start < to)
-        .map((item) => ({
-          eventId: item.eventId,
-          start: item.start.toISOString(),
-          end: item.end.toISOString(),
-          title: rule.title,
-          typeName: type?.name ?? '',
-          typeColor: type?.color ?? '',
-          completed: completedKeys.has(exceptionKey(item.eventId, item.start)),
-        }));
+        .map((item) => {
+          const exception = exceptionByKey.get(exceptionKey(item.eventId, item.start));
+          return {
+            eventId: item.eventId,
+            start: item.start.toISOString(),
+            end: item.end.toISOString(),
+            title: exception?.title || rule.title,
+            typeName: type?.name ?? '',
+            typeColor: type?.color ?? '',
+            completed: exception?.completed ?? false,
+          };
+        });
     });
 
     occurrences.sort((left, right) => left.start.localeCompare(right.start));
@@ -127,13 +129,27 @@ export class EventsService {
     return { id: String(created._id) };
   }
 
-  async getEvent(sid: string, eventId: string): Promise<EventDetail> {
+  async getEvent(sid: string, eventId: string, occurrenceStart?: string): Promise<EventDetail> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
-    return toEventDetail(event);
+    const detail = toEventDetail(event);
+    const oneDay = event.weekdays.length > 0 ? this.occurrenceInstant(occurrenceStart) : null;
+    if (!oneDay) {
+      return detail;
+    }
+    this.assertOccurrence(event, oneDay);
+    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: oneDay }).exec();
+    if (!exception) {
+      return detail;
+    }
+    return {
+      ...detail,
+      title: exception.title || detail.title,
+      description: exception.description ?? detail.description,
+    };
   }
 
-  async updateEvent(sid: string, eventId: string, dto: CreateEventDto): Promise<{ id: string }> {
+  async updateEvent(sid: string, eventId: string, dto: UpdateEventDto): Promise<{ id: string }> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
     assertTimeZone(dto.timeZone);
@@ -143,17 +159,26 @@ export class EventsService {
     assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
     this.assertAssignee(user, dto.assigneeId);
     await this.assertOwnedType(user, dto.typeId);
-
-    event.title = dto.title;
+    const oneDay = weekdays.length > 0 ? this.occurrenceInstant(dto.occurrenceStart) : null;
+    if (oneDay) {
+      this.assertOccurrence(event, oneDay);
+    }
+    if (!oneDay) {
+      event.title = dto.title;
+      event.description = dto.description;
+    }
     event.typeId = new Types.ObjectId(dto.typeId);
     event.assigneeId = user._id;
-    event.description = dto.description;
     event.start = start;
     event.end = end;
     event.timeZone = dto.timeZone;
     event.weekdays = weekdays;
     event.until = dto.until;
     await event.save();
+    if (!oneDay) {
+      return { id: String(event._id) };
+    }
+    await this.saveOccurrenceText(event, oneDay, dto.title, dto.description);
     return { id: String(event._id) };
   }
 
@@ -162,6 +187,7 @@ export class EventsService {
     const event = await this.ownedEvent(user, eventId);
     const start = new Date(dto.occurrenceStart);
     const end = new Date(dto.occurrenceEnd);
+    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: start }).exec();
     if (!(end > start)) {
       throw new BadRequestException('End must be after the start');
     }
@@ -178,8 +204,8 @@ export class EventsService {
       userId: user._id,
       assigneeId: user._id,
       typeId: event.typeId,
-      title: event.title,
-      description: event.description,
+      title: exception?.title || event.title,
+      description: exception?.description ?? event.description,
       start: copyStart,
       end: copyEnd,
       timeZone: event.timeZone,
@@ -239,6 +265,65 @@ export class EventsService {
       throw new NotFoundException('Choose a task');
     }
     return event;
+  }
+
+  private occurrenceInstant(value: string | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+    const start = new Date(value);
+    if (Number.isNaN(start.getTime())) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    return start;
+  }
+
+  private assertOccurrence(event: CalendarEventDocument, start: Date): void {
+    if (this.occurrenceAt(event, start)) {
+      return;
+    }
+    throw new NotFoundException('Choose a task');
+  }
+
+  private async saveOccurrenceText(
+    event: CalendarEventDocument,
+    occurrenceStart: Date,
+    title: string,
+    description: string,
+  ): Promise<void> {
+    const titleChanged = title !== event.title;
+    const descriptionChanged = description !== event.description;
+    const set: { title?: string; description?: string } = {};
+    const unset: { title?: 1; description?: 1 } = {};
+    if (titleChanged) {
+      set.title = title;
+    }
+    if (!titleChanged) {
+      unset.title = 1;
+    }
+    if (descriptionChanged) {
+      set.description = description;
+    }
+    if (!descriptionChanged) {
+      unset.description = 1;
+    }
+    const changed = titleChanged || descriptionChanged;
+    if (!changed) {
+      await this.exceptions.updateOne({ eventId: event._id, occurrenceStart }, { $unset: { title: 1, description: 1 } });
+      return;
+    }
+    const update: {
+      $set?: { title?: string; description?: string };
+      $unset?: { title?: 1; description?: 1 };
+      $setOnInsert: { completed: false };
+    } = { $setOnInsert: { completed: false } };
+    if (titleChanged || descriptionChanged) {
+      update.$set = set;
+    }
+    if (!titleChanged || !descriptionChanged) {
+      update.$unset = unset;
+    }
+    await this.exceptions.updateOne({ eventId: event._id, occurrenceStart }, update, { upsert: true });
   }
 
   private occurrenceAt(event: CalendarEventDocument, start: Date): boolean {

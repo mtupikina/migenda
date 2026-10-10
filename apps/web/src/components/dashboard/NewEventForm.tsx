@@ -17,6 +17,7 @@ type NewEventFormProps = {
   initialTypeId: string | null;
   initialRange?: { start: string; end: string } | null;
   eventId?: string | null;
+  occurrenceStart?: string | null;
   values?: NewEventFormValues | null;
   onCreateType: () => void;
   onCreated: () => void;
@@ -29,6 +30,7 @@ export function NewEventForm({
   initialTypeId,
   initialRange,
   eventId = null,
+  occurrenceStart = null,
   values = null,
   onCreateType,
   onCreated,
@@ -52,7 +54,7 @@ export function NewEventForm({
   const mutation = useMutation({
     mutationFn: (input: CreateEventInput) => {
       if (eventId) {
-        return updateEvent(eventId, input);
+        return updateEvent(eventId, input, occurrenceStart);
       }
       return createEvent(input);
     },

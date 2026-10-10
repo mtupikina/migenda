@@ -13,6 +13,12 @@ export class EventException {
 
   @Prop({ required: true })
   completed!: boolean;
+
+  @Prop({ trim: true, maxlength: 50 })
+  title?: string;
+
+  @Prop({ maxlength: 1000 })
+  description?: string;
 }
 
 export const EventExceptionSchema = SchemaFactory.createForClass(EventException);

@@ -14,6 +14,7 @@ type NewEventDialogProps = {
   assignees: AssigneeOption[];
   initialRange?: { start: string; end: string } | null;
   eventId?: string | null;
+  occurrenceStart?: string | null;
   onClose: () => void;
 };
 
@@ -23,18 +24,19 @@ export function NewEventDialog({
   assignees,
   initialRange,
   eventId = null,
+  occurrenceStart = null,
   onClose,
 }: NewEventDialogProps) {
   const [creatingType, setCreatingType] = useState(false);
   const [typeId, setTypeId] = useState<string | null>(null);
   const editing = Boolean(eventId);
   const eventQuery = useQuery({
-    queryKey: ['event', eventId],
+    queryKey: ['event', eventId, occurrenceStart],
     queryFn: () => {
       if (!eventId) {
         throw new Error('Missing event');
       }
-      return fetchEvent(eventId);
+      return fetchEvent(eventId, occurrenceStart);
     },
     enabled: opened && editing,
   });
@@ -48,7 +50,7 @@ export function NewEventDialog({
   const showLoadError = editing && !showTypeForm && eventQuery.isError;
   const showEventForm = !showTypeForm && (!editing || formValues !== null);
   const formKey = editing
-    ? `${eventId}-${typeId ?? formValues?.typeId ?? 'saved'}`
+    ? `${eventId}-${occurrenceStart ?? 'series'}-${typeId ?? formValues?.typeId ?? 'saved'}`
     : `${typeId ?? 'event'}-${initialRange?.start ?? 'now'}`;
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export function NewEventDialog({
           initialTypeId={typeId}
           initialRange={initialRange}
           eventId={eventId}
+          occurrenceStart={occurrenceStart}
           values={formValues}
           onCreateType={() => setCreatingType(true)}
           onCreated={onClose}

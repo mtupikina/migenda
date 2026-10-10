@@ -50,20 +50,29 @@ export async function completeEvent(eventId: string, occurrenceStart: string): P
   }
 }
 
-export async function fetchEvent(eventId: string): Promise<EventDetail> {
-  const response = await fetch(apiPath(`/events/${eventId}`), { credentials: 'include' });
+export async function fetchEvent(eventId: string, occurrenceStart?: string | null): Promise<EventDetail> {
+  const params = new URLSearchParams();
+  if (occurrenceStart) {
+    params.set('occurrenceStart', occurrenceStart);
+  }
+  const query = params.size > 0 ? `?${params.toString()}` : '';
+  const response = await fetch(apiPath(`/events/${eventId}${query}`), { credentials: 'include' });
   if (!response.ok) {
     throw new ScheduleRequestError(await errorMessage(response, 'Could not load this event.'));
   }
   return response.json() as Promise<EventDetail>;
 }
 
-export async function updateEvent(eventId: string, input: CreateEventInput): Promise<void> {
+export async function updateEvent(
+  eventId: string,
+  input: CreateEventInput,
+  occurrenceStart?: string | null,
+): Promise<void> {
   const response = await fetch(apiPath(`/events/${eventId}`), {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, occurrenceStart: occurrenceStart ?? undefined }),
   });
   if (!response.ok) {
     throw new ScheduleRequestError(await errorMessage(response, 'Could not save the changes.'));

@@ -8,7 +8,7 @@ type BookingActionsProviderProps = {
   resetKey: string;
   occurrences: Occurrence[];
   dismissed: boolean;
-  onEdit: (eventId: string) => void;
+  onEdit: (eventId: string, occurrenceStart: string) => void;
   children: ReactNode;
 };
 
@@ -55,7 +55,7 @@ export function BookingActionsProvider({
           if (!selected) {
             return;
           }
-          onEdit(selected.eventId);
+          onEdit(selected.eventId, selected.start);
         }}
       />
     </BookingActionsContext.Provider>

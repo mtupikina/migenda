@@ -8,6 +8,7 @@ import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
 import { DashboardQueryDto } from './dashboard-query.dto';
 import { EventsService } from './events.service';
+import { UpdateEventDto } from './update-event.dto';
 
 @Controller()
 export class EventsController {
@@ -24,12 +25,16 @@ export class EventsController {
   }
 
   @Get('events/:eventId')
-  getEvent(@Req() req: Request, @Param('eventId') eventId: string) {
-    return this.events.getEvent(sessionId(req), eventId);
+  getEvent(
+    @Req() req: Request,
+    @Param('eventId') eventId: string,
+    @Query('occurrenceStart') occurrenceStart?: string,
+  ) {
+    return this.events.getEvent(sessionId(req), eventId, occurrenceStart);
   }
 
   @Patch('events/:eventId')
-  updateEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: CreateEventDto) {
+  updateEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: UpdateEventDto) {
     return this.events.updateEvent(sessionId(req), eventId, dto);
   }
 
