@@ -1,11 +1,12 @@
 import { format } from 'date-fns';
-import { Button, Group, Modal, Stack, Text } from '@mantine/core';
+import { Modal, Stack, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { File } from 'lucide-react';
 import type { Occurrence } from '@migenda/shared';
 
 import { fetchNotes } from '../../api/events';
 import { NoteCard } from './NoteCard';
+import { NoteComposeForm } from './NoteComposeForm';
 
 type NotesDialogProps = {
   occurrence: Occurrence | null;
@@ -30,7 +31,14 @@ export function NotesDialog({ occurrence, onClose }: NotesDialogProps) {
   const showEmpty = notes.isSuccess && items.length === 0;
 
   return (
-    <Modal opened={occurrence !== null} onClose={onClose} title={title} centered radius={0}>
+    <Modal
+      opened={occurrence !== null}
+      onClose={onClose}
+      title={title}
+      centered
+      radius={0}
+      classNames={{ body: 'max-h-[70vh] overflow-y-auto' }}
+    >
       {occurrence ? (
         <Stack gap={16}>
           {showEmpty ? (
@@ -49,12 +57,12 @@ export function NotesDialog({ occurrence, onClose }: NotesDialogProps) {
             </Stack>
           ) : null}
           {notes.isError ? <Text fz={13}>Could not load notes.</Text> : null}
-          <Group justify="flex-end" gap={8}>
-            <Button type="button" variant="default" onClick={onClose}>
-              Close
-            </Button>
-            <Button type="button">Add note</Button>
-          </Group>
+          <NoteComposeForm
+            key={`${occurrence.eventId}-${occurrence.start}`}
+            eventId={occurrence.eventId}
+            occurrenceStart={occurrence.start}
+            onClose={onClose}
+          />
         </Stack>
       ) : null}
     </Modal>
