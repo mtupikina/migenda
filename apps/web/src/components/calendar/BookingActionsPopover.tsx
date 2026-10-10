@@ -15,6 +15,7 @@ type BookingActionsPopoverProps = {
   onDuplicate: () => void;
   onEdit: () => void;
   onRemove: () => void;
+  onNote: () => void;
 };
 
 export function BookingActionsPopover({
@@ -28,6 +29,7 @@ export function BookingActionsPopover({
   onDuplicate,
   onEdit,
   onRemove,
+  onNote,
 }: BookingActionsPopoverProps) {
   const menu = useRef<HTMLDivElement>(null);
   const box = useAnchorBox(anchor);
@@ -85,6 +87,7 @@ export function BookingActionsPopover({
             onDuplicate={onDuplicate}
             onEdit={onEdit}
             onRemove={onRemove}
+            onNote={onNote}
           />
         </div>
       </Popover.Dropdown>

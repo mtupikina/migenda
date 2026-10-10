@@ -10,6 +10,7 @@ type BookingActionsProviderProps = {
   dismissed: boolean;
   onEdit: (eventId: string, occurrenceStart: string) => void;
   onRemove: (occurrence: Occurrence) => void;
+  onNote: (occurrence: Occurrence) => void;
   children: ReactNode;
 };
 
@@ -19,6 +20,7 @@ export function BookingActionsProvider({
   dismissed,
   onEdit,
   onRemove,
+  onNote,
   children,
 }: BookingActionsProviderProps) {
   const booking = useBookingActions(resetKey);
@@ -64,6 +66,12 @@ export function BookingActionsProvider({
             return;
           }
           onRemove(selected);
+        }}
+        onNote={() => {
+          if (!selected) {
+            return;
+          }
+          onNote(selected);
         }}
       />
     </BookingActionsContext.Provider>

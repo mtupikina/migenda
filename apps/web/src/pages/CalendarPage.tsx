@@ -10,6 +10,7 @@ import { AppNav } from '../components/AppNav';
 import { CalendarToolbar } from '../components/calendar/CalendarToolbar';
 import { BookingActionsProvider } from '../components/calendar/BookingActionsProvider';
 import { DeleteEventDialog } from '../components/calendar/DeleteEventDialog';
+import { NotesDialog } from '../components/calendar/NotesDialog';
 import { DayCalendar } from '../components/calendar/DayCalendar';
 import { MonthCalendar } from '../components/calendar/MonthCalendar';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
@@ -33,6 +34,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const [editingOccurrenceStart, setEditingOccurrenceStart] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const [deleting, setDeleting] = useState<Occurrence | null>(null);
+  const [noting, setNoting] = useState<Occurrence | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
     queryKey: ['dashboard', range?.from, range?.to],
@@ -99,9 +101,10 @@ export function CalendarPage({ view }: CalendarPageProps) {
           <BookingActionsProvider
             resetKey={`${view}-${dateParam ?? ''}`}
             occurrences={schedule.occurrences}
-            dismissed={dialogOpen || deleting !== null}
+            dismissed={dialogOpen || deleting !== null || noting !== null}
             onEdit={openEdit}
             onRemove={setDeleting}
+            onNote={setNoting}
           >
             {view === 'day' ? (
               <DayCalendar
@@ -145,6 +148,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
               onClose={closeDialog}
             />
             <DeleteEventDialog occurrence={deleting} onClose={() => setDeleting(null)} />
+            <NotesDialog occurrence={noting} onClose={() => setNoting(null)} />
           </>
         ) : null}
       </Box>

@@ -10,6 +10,7 @@ type BookingActionsMenuProps = {
   onDuplicate: () => void;
   onEdit: () => void;
   onRemove: () => void;
+  onNote: () => void;
 };
 
 export function BookingActionsMenu({
@@ -21,13 +22,14 @@ export function BookingActionsMenu({
   onDuplicate,
   onEdit,
   onRemove,
+  onNote,
 }: BookingActionsMenuProps) {
   const completeLabel = occurrence.completed ? 'Completed' : 'Complete';
 
   return (
     <div className="flex flex-col gap-2 text-[#201e1d]">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" aria-label="Add note" className={iconClass}>
+        <button type="button" aria-label="Add note" className={iconClass} onClick={onNote}>
           <FileText size={14} />
         </button>
         <button
