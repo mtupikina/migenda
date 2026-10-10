@@ -9,6 +9,7 @@ type BookingActionsMenuProps = {
   onComplete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  onRemove: () => void;
 };
 
 export function BookingActionsMenu({
@@ -19,6 +20,7 @@ export function BookingActionsMenu({
   onComplete,
   onDuplicate,
   onEdit,
+  onRemove,
 }: BookingActionsMenuProps) {
   const completeLabel = occurrence.completed ? 'Completed' : 'Complete';
 
@@ -51,7 +53,11 @@ export function BookingActionsMenu({
         >
           {completeLabel}
         </button>
-        <button type="button" className="border border-accent bg-accent px-2.5 py-1 text-[11px] font-semibold text-white">
+        <button
+          type="button"
+          className="border border-accent bg-accent px-2.5 py-1 text-[11px] font-semibold text-white"
+          onClick={onRemove}
+        >
           Remove
         </button>
       </div>

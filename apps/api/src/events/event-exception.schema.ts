@@ -14,6 +14,9 @@ export class EventException {
   @Prop({ required: true })
   completed!: boolean;
 
+  @Prop({ default: false })
+  deleted!: boolean;
+
   @Prop({ trim: true, maxlength: 50 })
   title?: string;
 

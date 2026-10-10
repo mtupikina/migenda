@@ -1,4 +1,11 @@
-import type { CreateEventInput, CreateEventTypeInput, Dashboard, EventDetail, EventType } from '@migenda/shared';
+import type {
+  CreateEventInput,
+  CreateEventTypeInput,
+  Dashboard,
+  DeleteEventScope,
+  EventDetail,
+  EventType,
+} from '@migenda/shared';
 
 import { apiPath } from './apiPath';
 import { dashboardRange, type DashboardRange } from '../dashboardRange';
@@ -19,6 +26,22 @@ export async function fetchDashboard(range: DashboardRange = dashboardRange(new 
     throw new ScheduleRequestError('Could not load your schedule.');
   }
   return response.json() as Promise<Dashboard>;
+}
+
+export async function deleteEvent(
+  eventId: string,
+  occurrenceStart: string,
+  scope: DeleteEventScope,
+): Promise<void> {
+  const response = await fetch(apiPath(`/events/${eventId}/delete`), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ occurrenceStart, scope }),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not delete the task.'));
+  }
 }
 
 export async function duplicateEvent(

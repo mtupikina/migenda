@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Loader, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
+import type { Occurrence } from '@migenda/shared';
 
 import { fetchDashboard } from '../api/events';
 import { calendarPath, calendarRange, parseCalendarDate, type CalendarView } from '../calendarPeriod';
 import { AppNav } from '../components/AppNav';
 import { CalendarToolbar } from '../components/calendar/CalendarToolbar';
 import { BookingActionsProvider } from '../components/calendar/BookingActionsProvider';
+import { DeleteEventDialog } from '../components/calendar/DeleteEventDialog';
 import { DayCalendar } from '../components/calendar/DayCalendar';
 import { MonthCalendar } from '../components/calendar/MonthCalendar';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
@@ -30,6 +32,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editingOccurrenceStart, setEditingOccurrenceStart] = useState<string | null>(null);
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
+  const [deleting, setDeleting] = useState<Occurrence | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
     queryKey: ['dashboard', range?.from, range?.to],
@@ -96,8 +99,9 @@ export function CalendarPage({ view }: CalendarPageProps) {
           <BookingActionsProvider
             resetKey={`${view}-${dateParam ?? ''}`}
             occurrences={schedule.occurrences}
-            dismissed={dialogOpen}
+            dismissed={dialogOpen || deleting !== null}
             onEdit={openEdit}
+            onRemove={setDeleting}
           >
             {view === 'day' ? (
               <DayCalendar
@@ -130,15 +134,18 @@ export function CalendarPage({ view }: CalendarPageProps) {
           </BookingActionsProvider>
         ) : null}
         {schedule ? (
-          <NewEventDialog
-            opened={dialogOpen}
-            types={schedule.types}
-            assignees={schedule.assignees}
-            initialRange={editingEventId ? null : slotRange}
-            eventId={editingEventId}
-            occurrenceStart={editingOccurrenceStart}
-            onClose={closeDialog}
-          />
+          <>
+            <NewEventDialog
+              opened={dialogOpen}
+              types={schedule.types}
+              assignees={schedule.assignees}
+              initialRange={editingEventId ? null : slotRange}
+              eventId={editingEventId}
+              occurrenceStart={editingOccurrenceStart}
+              onClose={closeDialog}
+            />
+            <DeleteEventDialog occurrence={deleting} onClose={() => setDeleting(null)} />
+          </>
         ) : null}
       </Box>
     </Box>

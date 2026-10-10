@@ -3,6 +3,7 @@ import { Request } from 'express';
 
 import { SESSION_COOKIE } from '../auth/auth.constants';
 import { CompleteEventDto } from './complete-event.dto';
+import { DeleteEventDto } from './delete-event.dto';
 import { CreateEventDto } from './create-event.dto';
 import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
@@ -36,6 +37,11 @@ export class EventsController {
   @Patch('events/:eventId')
   updateEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: UpdateEventDto) {
     return this.events.updateEvent(sessionId(req), eventId, dto);
+  }
+
+  @Post('events/:eventId/delete')
+  deleteEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: DeleteEventDto) {
+    return this.events.deleteEvent(sessionId(req), eventId, dto);
   }
 
   @Post('events/:eventId/duplicate')

@@ -12,6 +12,7 @@ import { userFullName } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
 import { UserDocument } from '../auth/user.schema';
 import { CompleteEventDto } from './complete-event.dto';
+import { DeleteEventDto } from './delete-event.dto';
 import { CreateEventDto } from './create-event.dto';
 import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
@@ -79,7 +80,11 @@ export class EventsService {
         to,
       );
       return expanded
-        .filter((item) => item.start >= from && item.start < to)
+        .filter((item) => {
+          const exception = exceptionByKey.get(exceptionKey(item.eventId, item.start));
+          const inWindow = item.start >= from && item.start < to;
+          return inWindow && !exception?.deleted;
+        })
         .map((item) => {
           const exception = exceptionByKey.get(exceptionKey(item.eventId, item.start));
           return {
@@ -90,6 +95,7 @@ export class EventsService {
             typeName: type?.name ?? '',
             typeColor: type?.color ?? '',
             completed: exception?.completed ?? false,
+            repeating: rule.weekdays.length > 0,
           };
         });
     });
@@ -182,6 +188,27 @@ export class EventsService {
     return { id: String(event._id) };
   }
 
+  async deleteEvent(sid: string, eventId: string, dto: DeleteEventDto): Promise<void> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    const start = new Date(dto.occurrenceStart);
+    if (Number.isNaN(start.getTime())) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    this.assertOccurrence(event, start);
+    const repeating = event.weekdays.length > 0;
+    const removeSeries = !repeating || dto.scope === 'series';
+    if (removeSeries) {
+      await this.deleteSeries(event);
+      return;
+    }
+    if (dto.scope === 'one') {
+      await this.deleteOneOccurrence(event, start);
+      return;
+    }
+    await this.deleteFollowing(event, start);
+  }
+
   async duplicateEvent(sid: string, eventId: string, dto: DuplicateEventDto): Promise<{ start: string }> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
@@ -267,6 +294,31 @@ export class EventsService {
     return event;
   }
 
+  private async deleteSeries(event: CalendarEventDocument): Promise<void> {
+    await this.exceptions.deleteMany({ eventId: event._id }).exec();
+    await this.events.deleteOne({ _id: event._id }).exec();
+  }
+
+  private async deleteOneOccurrence(event: CalendarEventDocument, start: Date): Promise<void> {
+    await this.exceptions.updateOne(
+      { eventId: event._id, occurrenceStart: start },
+      { $set: { deleted: true }, $setOnInsert: { completed: false } },
+      { upsert: true },
+    );
+  }
+
+  private async deleteFollowing(event: CalendarEventDocument, start: Date): Promise<void> {
+    const dayBefore = shiftYmd(zonedYmd(start, event.timeZone), -1);
+    const seriesStart = zonedYmd(event.start, event.timeZone);
+    if (dayBefore < seriesStart) {
+      await this.deleteSeries(event);
+      return;
+    }
+    event.until = earlierUntil(event.until, dayBefore);
+    await event.save();
+    await this.exceptions.deleteMany({ eventId: event._id, occurrenceStart: { $gte: start } }).exec();
+  }
+
   private occurrenceInstant(value: string | undefined): Date | null {
     if (!value) {
       return null;
@@ -350,6 +402,13 @@ export class EventsService {
       throw new NotFoundException('Choose a type');
     }
   }
+}
+
+function earlierUntil(current: string | null, dayBefore: string): string {
+  if (current !== null && current < dayBefore) {
+    return current;
+  }
+  return dayBefore;
 }
 
 function toEventDetail(event: CalendarEventDocument): EventDetail {

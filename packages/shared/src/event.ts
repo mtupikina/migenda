@@ -111,7 +111,12 @@ export const occurrenceSchema = z.object({
   typeName: z.string(),
   typeColor: z.string(),
   completed: z.boolean(),
+  repeating: z.boolean(),
 });
+
+export const deleteEventScopeSchema = z.enum(['one', 'following', 'series']);
+
+export type DeleteEventScope = z.infer<typeof deleteEventScopeSchema>;
 
 export type Occurrence = z.infer<typeof occurrenceSchema>;
 
