@@ -67,6 +67,10 @@ export function BookingActionsProvider({
           if (!selected) {
             return;
           }
+          if (selected.blocked) {
+            booking.unblock(selected);
+            return;
+          }
           onRemove(selected);
         }}
         onNote={() => {

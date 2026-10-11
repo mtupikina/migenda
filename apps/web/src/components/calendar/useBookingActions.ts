@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Occurrence } from '@migenda/shared';
 
-import { completeEvent, duplicateEvent, ScheduleRequestError } from '../../api/events';
+import { completeEvent, deleteTimeBlock, duplicateEvent, ScheduleRequestError } from '../../api/events';
 
 export function occurrenceKey(occurrence: Occurrence): string {
   return `${occurrence.eventId}-${occurrence.seriesStart}`;
@@ -33,6 +33,18 @@ export function useBookingActions(resetKey: string) {
     },
     onError: (error) => {
       const message = error instanceof ScheduleRequestError ? error.message : 'Could not duplicate the task.';
+      setToast(message);
+    },
+  });
+  const unblock = useMutation({
+    mutationFn: (occurrence: Occurrence) => deleteTimeBlock(occurrence.eventId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      setToast('Time unblocked');
+      clear();
+    },
+    onError: (error) => {
+      const message = error instanceof ScheduleRequestError ? error.message : 'Could not unblock this time.';
       setToast(message);
     },
   });
@@ -69,11 +81,13 @@ export function useBookingActions(resetKey: string) {
     toast,
     completing: complete.isPending,
     duplicating: duplicate.isPending,
+    unblocking: unblock.isPending,
     select,
     clear,
     notify: (message: string) => setToast(message),
     complete: (occurrence: Occurrence) => complete.mutate(occurrence),
     duplicate: (occurrence: Occurrence) => duplicate.mutate(occurrence),
+    unblock: (occurrence: Occurrence) => unblock.mutate(occurrence),
   };
 }
 

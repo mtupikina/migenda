@@ -10,6 +10,7 @@ import { AppNav } from '../components/AppNav';
 import { CalendarToolbar } from '../components/calendar/CalendarToolbar';
 import { BookingActionsProvider } from '../components/calendar/BookingActionsProvider';
 import { BookingNotice } from '../components/calendar/BookingNotice';
+import { BlockTimeDialog } from '../components/calendar/BlockTimeDialog';
 import { DeleteEventDialog } from '../components/calendar/DeleteEventDialog';
 import { NotesDialog } from '../components/calendar/NotesDialog';
 import { CalendarDragProvider } from '../components/calendar/CalendarDragProvider';
@@ -37,6 +38,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const [deleting, setDeleting] = useState<Occurrence | null>(null);
   const [noting, setNoting] = useState<Occurrence | null>(null);
+  const [blockingTime, setBlockingTime] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
@@ -105,6 +107,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
             date={date}
             newEventDisabled={!schedule}
             onNewEvent={openCreate}
+            onBlockTime={() => setBlockingTime(true)}
           />
         ) : null}
         {dashboard.isError ? <Text mt={16}>Could not load your schedule.</Text> : null}
@@ -112,7 +115,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
           <BookingActionsProvider
             resetKey={`${view}-${dateParam ?? ''}`}
             occurrences={schedule.occurrences}
-            dismissed={dialogOpen || deleting !== null || noting !== null}
+            dismissed={dialogOpen || deleting !== null || noting !== null || blockingTime}
             onEdit={openEdit}
             onRemove={setDeleting}
             onNote={setNoting}
@@ -149,7 +152,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
             </CalendarDragProvider>
           </BookingActionsProvider>
         ) : null}
-        {schedule ? (
+        {date && schedule ? (
           <>
             <NewEventDialog
               opened={dialogOpen}
@@ -164,6 +167,18 @@ export function CalendarPage({ view }: CalendarPageProps) {
                   setNotice(warning);
                 }
               }}
+            />
+            <BlockTimeDialog
+              opened={blockingTime}
+              view={view}
+              date={date}
+              occurrences={schedule.occurrences}
+              onClose={() => setBlockingTime(false)}
+              onReschedule={(eventId, occurrenceStart) => {
+                setBlockingTime(false);
+                openEdit(eventId, occurrenceStart);
+              }}
+              onBlocked={() => setNotice('Time blocked')}
             />
             <DeleteEventDialog occurrence={deleting} onClose={() => setDeleting(null)} />
             <NotesDialog occurrence={noting} onClose={() => setNoting(null)} />

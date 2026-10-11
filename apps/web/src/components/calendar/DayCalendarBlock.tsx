@@ -48,10 +48,40 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
     height: box.height,
   };
 
+  const handleClick = (target: HTMLElement) => {
+    if (drag.ignoreClick()) {
+      return;
+    }
+    onSelect(target);
+  };
+
   if (isDragging) {
     return (
       <div ref={setNodeRef} className="absolute right-2 left-2 z-10" style={frame} {...listeners} {...attributes}>
         <BookingDragGhost label={originalSlotLabel(occurrence, true)} />
+      </div>
+    );
+  }
+
+  if (occurrence.blocked) {
+    const endFmt = format(new Date(occurrence.end), 'HH:mm');
+    return (
+      <div
+        ref={setNodeRef}
+        role="button"
+        tabIndex={0}
+        aria-pressed={selected}
+        className={`absolute right-2 left-2 z-10 flex cursor-pointer overflow-hidden border border-[#d4d1cd] bg-[repeating-linear-gradient(135deg,transparent,transparent_8px,color-mix(in_srgb,#201e1d_5%,transparent)_8px,color-mix(in_srgb,#201e1d_5%,transparent)_16px)] bg-[#f3f1ee] px-3 py-2 text-[#201e1d] shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_14%,transparent)] ${picked}`}
+        style={frame}
+        onClick={(event) => handleClick(event.currentTarget)}
+        onKeyDown={(event) => selectFromKeyboard(event, onSelect)}
+      >
+        <div className="min-w-0 leading-tight">
+          <p className="truncate text-[13px] font-semibold">Blocked time</p>
+          <p className="truncate text-[12px] opacity-75">
+            {time} – {endFmt} {occurrence.reason ? `· ${occurrence.reason}` : ''}
+          </p>
+        </div>
       </div>
     );
   }
@@ -64,12 +94,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
       {...listeners}
       {...attributes}
       aria-pressed={selected}
-      onClick={(event) => {
-        if (drag.ignoreClick()) {
-          return;
-        }
-        onSelect(event.currentTarget);
-      }}
+      onClick={(event) => handleClick(event.currentTarget)}
       onKeyDown={(event) => selectFromKeyboard(event, onSelect)}
     >
       <div className="flex min-w-0 items-start gap-1">

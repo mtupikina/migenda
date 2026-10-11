@@ -1,6 +1,7 @@
 import type {
   CreateEventInput,
   CreateEventTypeInput,
+  CreateTimeBlockInput,
   Dashboard,
   DeleteEventScope,
   EventDetail,
@@ -174,6 +175,29 @@ export async function createEventType(input: CreateEventTypeInput): Promise<Even
     throw new ScheduleRequestError(await errorMessage(response, 'Could not create the type.'));
   }
   return response.json() as Promise<EventType>;
+}
+
+export async function createTimeBlock(input: CreateTimeBlockInput): Promise<{ id: string }> {
+  const response = await fetch(apiPath('/time-blocks'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not block this time.'));
+  }
+  return response.json() as Promise<{ id: string }>;
+}
+
+export async function deleteTimeBlock(blockId: string): Promise<void> {
+  const response = await fetch(apiPath(`/time-blocks/${blockId}/delete`), {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not unblock this time.'));
+  }
 }
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {

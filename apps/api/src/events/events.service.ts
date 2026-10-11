@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import {
+  conflictingOccurrences,
   rangeIsOpen,
   userFullName,
   type AssigneeOption,
@@ -21,6 +22,7 @@ import { AuthService } from '../auth/auth.service';
 import { UserDocument } from '../auth/user.schema';
 import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventNoteDto } from './create-event-note.dto';
+import { CreateTimeBlockDto } from './create-time-block.dto';
 import { DeleteEventDto } from './delete-event.dto';
 import { CreateEventDto } from './create-event.dto';
 import { DuplicateEventDto } from './duplicate-event.dto';
@@ -33,6 +35,7 @@ import { EventType, EventTypeDocument } from './event-type.schema';
 import { containsInstant, expandEvent, ruleFrom, ruleOf, type EventRule } from './expand-event';
 import { MoveEventDto } from './move-event.dto';
 import { collectOccurrences } from './place-occurrence';
+import { TimeBlock, TimeBlockDocument } from './time-block.schema';
 import { UpdateEventDto } from './update-event.dto';
 import { editScope, ruleBounds, seriesClock, type EventScope } from './update-event-scope';
 import { shiftYmd, zonedLocalToUtc, zonedParts, zonedYmd } from './zoned-time';
@@ -45,6 +48,7 @@ export class EventsService {
     @InjectModel(EventType.name) private readonly types: Model<EventTypeDocument>,
     @InjectModel(EventException.name) private readonly exceptions: Model<EventExceptionDocument>,
     @InjectModel(EventNote.name) private readonly eventNotes: Model<EventNoteDocument>,
+    @InjectModel(TimeBlock.name) private readonly timeBlocks: Model<TimeBlockDocument>,
   ) {}
 
   async dashboard(sid: string, fromIso: string, toIso: string): Promise<Dashboard> {
@@ -55,7 +59,7 @@ export class EventsService {
       throw new BadRequestException('The end of the range must be after the start');
     }
 
-    const [rules, typeDocs] = await Promise.all([
+    const [rules, typeDocs, blockDocs] = await Promise.all([
       this.events
         .find({
           assigneeId: user._id,
@@ -66,6 +70,7 @@ export class EventsService {
         })
         .exec(),
       this.types.find({ userId: user._id }).sort({ name: 1 }).exec(),
+      this.timeBlocks.find({ userId: user._id, start: { $lt: to }, end: { $gt: from } }).exec(),
     ]);
     const exceptionDocs = await this.exceptions
       .find({
@@ -75,7 +80,7 @@ export class EventsService {
       .exec();
 
     const typeById = new Map(typeDocs.map((type) => [String(type._id), type]));
-    const occurrences = collectOccurrences(rules, exceptionDocs, typeById, from, to);
+    const occurrences = collectOccurrences(rules, exceptionDocs, typeById, from, to, blockDocs);
 
     return {
       occurrences,
@@ -300,6 +305,49 @@ export class EventsService {
     return toEventType(created);
   }
 
+  async createTimeBlock(sid: string, dto: CreateTimeBlockDto): Promise<{ id: string }> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const start = new Date(dto.start);
+    const end = new Date(dto.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    if (!(end > start)) {
+      throw new BadRequestException('End time must be after the start time');
+    }
+    const touching = await this.occurrencesTouching(user, start, end);
+    const conflicting = conflictingOccurrences(
+      touching.filter((item) => !item.blocked),
+      { eventId: '', seriesStart: '' },
+      start.toISOString(),
+      end.toISOString(),
+    );
+    if (conflicting.length > 0) {
+      const first = conflicting[0];
+      throw new ConflictException(
+        `This time conflicts with an existing event: ${first.title}. Please reschedule it first.`,
+      );
+    }
+    const created = await this.timeBlocks.create({
+      userId: user._id,
+      start,
+      end,
+      reason: dto.reason ?? '',
+    });
+    return { id: String(created._id) };
+  }
+
+  async deleteTimeBlock(sid: string, blockId: string): Promise<void> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    if (!Types.ObjectId.isValid(blockId)) {
+      throw new NotFoundException('Block not found');
+    }
+    const deleted = await this.timeBlocks.findOneAndDelete({ _id: blockId, userId: user._id }).exec();
+    if (!deleted) {
+      throw new NotFoundException('Block not found');
+    }
+  }
+
   private assertAssignee(user: UserDocument, assigneeId: string): void {
     if (assigneeId === String(user._id)) {
       return;
@@ -396,15 +444,18 @@ export class EventsService {
   }
 
   private async occurrencesTouching(user: UserDocument, start: Date, end: Date): Promise<Occurrence[]> {
-    const candidates = await this.events
-      .find({
-        assigneeId: user._id,
-        $or: [
-          { weekdays: { $size: 0 }, start: { $lt: end }, end: { $gt: start } },
-          { 'weekdays.0': { $exists: true }, start: { $lt: end } },
-        ],
-      })
-      .exec();
+    const [candidates, blockDocs] = await Promise.all([
+      this.events
+        .find({
+          assigneeId: user._id,
+          $or: [
+            { weekdays: { $size: 0 }, start: { $lt: end }, end: { $gt: start } },
+            { 'weekdays.0': { $exists: true }, start: { $lt: end } },
+          ],
+        })
+        .exec(),
+      this.timeBlocks.find({ userId: user._id, start: { $lt: end }, end: { $gt: start } }).exec(),
+    ]);
     const pad = candidates.reduce((max, rule) => Math.max(max, rule.end.getTime() - rule.start.getTime()), 0);
     const from = new Date(start.getTime() - pad);
     const exceptionDocs = await this.exceptions
@@ -413,7 +464,7 @@ export class EventsService {
         occurrenceStart: { $gte: from, $lt: end },
       })
       .exec();
-    return collectOccurrences(candidates, exceptionDocs, new Map(), from, end);
+    return collectOccurrences(candidates, exceptionDocs, new Map(), from, end, blockDocs);
   }
 
   private async moveOneTime(

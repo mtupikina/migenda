@@ -17,22 +17,24 @@ export function occurrencesOn(occurrences: Occurrence[], day: string): Occurrenc
 }
 
 export function countOn(occurrences: Occurrence[], day: string): number {
-  return occurrencesOn(occurrences, day).length;
+  return occurrencesOn(occurrences, day).filter((item) => !item.blocked).length;
 }
 
 export function completedOn(occurrences: Occurrence[], day: string): number {
-  return occurrencesOn(occurrences, day).filter((item) => item.completed).length;
+  return occurrencesOn(occurrences, day).filter((item) => !item.blocked && item.completed).length;
 }
 
 export function bookedMinutes(occurrences: Occurrence[], day: string): number {
-  return occurrencesOn(occurrences, day).reduce((total, item) => {
-    const minutes = differenceInMinutes(new Date(item.end), new Date(item.start));
-    return total + Math.max(minutes, 0);
-  }, 0);
+  return occurrencesOn(occurrences, day)
+    .filter((item) => !item.blocked)
+    .reduce((total, item) => {
+      const minutes = differenceInMinutes(new Date(item.end), new Date(item.start));
+      return total + Math.max(minutes, 0);
+    }, 0);
 }
 
 export function firstStartOn(occurrences: Occurrence[], day: string): string | null {
-  const first = occurrencesOn(occurrences, day)[0];
+  const first = occurrencesOn(occurrences, day).filter((item) => !item.blocked)[0];
   if (!first) {
     return null;
   }

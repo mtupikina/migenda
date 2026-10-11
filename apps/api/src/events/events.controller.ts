@@ -4,8 +4,9 @@ import { Request } from 'express';
 import { SESSION_COOKIE } from '../auth/auth.constants';
 import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventNoteDto } from './create-event-note.dto';
-import { DeleteEventDto } from './delete-event.dto';
 import { CreateEventDto } from './create-event.dto';
+import { CreateTimeBlockDto } from './create-time-block.dto';
+import { DeleteEventDto } from './delete-event.dto';
 import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
 import { DashboardQueryDto } from './dashboard-query.dto';
@@ -78,6 +79,16 @@ export class EventsController {
   @Post('event-types')
   createType(@Req() req: Request, @Body() dto: CreateEventTypeDto) {
     return this.events.createType(sessionId(req), dto);
+  }
+
+  @Post('time-blocks')
+  createTimeBlock(@Req() req: Request, @Body() dto: CreateTimeBlockDto) {
+    return this.events.createTimeBlock(sessionId(req), dto);
+  }
+
+  @Post('time-blocks/:blockId/delete')
+  deleteTimeBlock(@Req() req: Request, @Param('blockId') blockId: string) {
+    return this.events.deleteTimeBlock(sessionId(req), blockId);
   }
 }
 

@@ -25,6 +25,12 @@ export function WeekCalendarBlock({ occurrence, selected, onSelect }: WeekCalend
   const doneTitle = occurrence.completed ? 'line-through' : '';
   const picked = selected ? 'z-30 outline outline-2 outline-white' : '';
   const frame = { top: box.top, height: box.height };
+  const handleClick = (target: HTMLElement) => {
+    if (drag.ignoreClick()) {
+      return;
+    }
+    onSelect(target);
+  };
 
   if (isDragging) {
     return (
@@ -34,18 +40,27 @@ export function WeekCalendarBlock({ occurrence, selected, onSelect }: WeekCalend
     );
   }
 
+  if (occurrence.blocked) {
+    return (
+      <button
+        ref={setNodeRef}
+        type="button"
+        className={`absolute right-1 left-1 z-10 flex cursor-pointer items-center gap-1 overflow-hidden border border-[#d4d1cd] bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,color-mix(in_srgb,#201e1d_5%,transparent)_6px,color-mix(in_srgb,#201e1d_5%,transparent)_12px)] bg-[#f3f1ee] px-1.5 text-left text-[#201e1d] ${picked}`}
+        style={frame}
+        onClick={(event) => handleClick(event.currentTarget)}
+      >
+        <p className="truncate text-[11px] leading-tight font-semibold">Blocked</p>
+      </button>
+    );
+  }
+
   return (
     <button
       ref={setNodeRef}
       type="button"
       className={`absolute right-1 left-1 z-10 flex cursor-grab items-center gap-1 overflow-hidden border-0 px-1.5 text-left ${textOnColor} ${picked}`}
       style={{ ...frame, background: occurrence.typeColor }}
-      onClick={(event) => {
-        if (drag.ignoreClick()) {
-          return;
-        }
-        onSelect(event.currentTarget);
-      }}
+      onClick={(event) => handleClick(event.currentTarget)}
       {...listeners}
       {...attributes}
     >

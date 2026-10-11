@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import type { Occurrence } from '@migenda/shared';
 
 import { originalSlotLabel } from '../../schedule/calendarDrag';
@@ -21,6 +22,13 @@ export function MonthCalendarChip({ occurrence, selected, onSelect }: MonthCalen
   const textOnColor = textOnTypeColor(occurrence.typeColor);
   const doneTitle = occurrence.completed ? 'line-through' : '';
   const picked = selected ? 'outline outline-2 outline-white' : '';
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (drag.ignoreClick()) {
+      return;
+    }
+    onSelect(event.currentTarget);
+  };
 
   if (isDragging) {
     return (
@@ -30,19 +38,27 @@ export function MonthCalendarChip({ occurrence, selected, onSelect }: MonthCalen
     );
   }
 
+  if (occurrence.blocked) {
+    const time = format(new Date(occurrence.start), 'HH:mm');
+    return (
+      <button
+        ref={setNodeRef}
+        type="button"
+        className={`mt-0.5 flex w-full cursor-pointer items-center gap-0.5 border border-[#d4d1cd] bg-[#e4e2df] px-1 text-left text-[11px] leading-4 font-semibold text-[#5c5855] ${picked}`}
+        onClick={handleClick}
+      >
+        <span className="truncate">{time} Blocked</span>
+      </button>
+    );
+  }
+
   return (
     <button
       ref={setNodeRef}
       type="button"
       className={`mt-0.5 flex w-full cursor-grab items-center gap-0.5 border-0 px-1 text-left text-[11px] leading-4 font-semibold ${textOnColor} ${picked}`}
       style={{ background: occurrence.typeColor }}
-      onClick={(event) => {
-        event.stopPropagation();
-        if (drag.ignoreClick()) {
-          return;
-        }
-        onSelect(event.currentTarget);
-      }}
+      onClick={handleClick}
       {...listeners}
       {...attributes}
     >

@@ -103,6 +103,8 @@ export const eventDetailSchema = z.object({
 
 export type EventDetail = z.infer<typeof eventDetailSchema>;
 
+export const TIME_BLOCK_REASON_MAX = 1000;
+
 export const occurrenceSchema = z.object({
   eventId: z.string(),
   start: z.string(),
@@ -113,7 +115,17 @@ export const occurrenceSchema = z.object({
   typeColor: z.string(),
   completed: z.boolean(),
   repeating: z.boolean(),
+  blocked: z.boolean().default(false),
+  reason: z.string().optional(),
 });
+
+export const createTimeBlockSchema = z.object({
+  start: z.string().min(1, 'Enter a start time'),
+  end: z.string().min(1, 'Enter an end time'),
+  reason: z.string().max(TIME_BLOCK_REASON_MAX, 'Use 1000 characters or fewer').default(''),
+});
+
+export type CreateTimeBlockInput = z.infer<typeof createTimeBlockSchema>;
 
 export const deleteEventScopeSchema = z.enum(['one', 'following', 'series']);
 
@@ -121,15 +133,24 @@ export type DeleteEventScope = z.infer<typeof deleteEventScopeSchema>;
 
 export type Occurrence = z.infer<typeof occurrenceSchema>;
 
+export function conflictingOccurrences<T extends Pick<Occurrence, 'eventId' | 'seriesStart' | 'start' | 'end'>>(
+  occurrences: T[],
+  moving: Pick<Occurrence, 'eventId' | 'seriesStart'>,
+  start: string,
+  end: string,
+): T[] {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  return occurrences.filter((item) => otherOccupies(item, moving, startMs, endMs));
+}
+
 export function rangeIsOpen(
   occurrences: Pick<Occurrence, 'eventId' | 'seriesStart' | 'start' | 'end'>[],
   moving: Pick<Occurrence, 'eventId' | 'seriesStart'>,
   start: string,
   end: string,
 ): boolean {
-  const startMs = new Date(start).getTime();
-  const endMs = new Date(end).getTime();
-  return !occurrences.some((item) => otherOccupies(item, moving, startMs, endMs));
+  return conflictingOccurrences(occurrences, moving, start, end).length === 0;
 }
 
 function otherOccupies(

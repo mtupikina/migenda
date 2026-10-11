@@ -15,7 +15,7 @@ type DashboardChecklistProps = {
 };
 
 export function DashboardChecklist({ occurrences, now, firstName }: DashboardChecklistProps) {
-  const today = occurrencesOn(occurrences, dayKey(now));
+  const today = occurrencesOn(occurrences, dayKey(now)).filter((item) => !item.blocked);
   const done = today.filter((item) => item.completed);
   const stillToCome = today.filter((item) => !item.completed);
   const date = dayKey(now);

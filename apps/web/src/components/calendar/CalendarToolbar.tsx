@@ -9,14 +9,26 @@ type CalendarToolbarProps = {
   date: Date;
   newEventDisabled: boolean;
   onNewEvent: () => void;
+  onBlockTime?: () => void;
 };
 
-export function CalendarToolbar({ view, date, newEventDisabled, onNewEvent }: CalendarToolbarProps) {
+export function CalendarToolbar({
+  view,
+  date,
+  newEventDisabled,
+  onNewEvent,
+  onBlockTime,
+}: CalendarToolbarProps) {
   return (
     <Group justify="space-between" align="center" wrap="wrap" gap={16}>
       <CalendarPeriodControls view={view} date={date} />
       <Group gap={16} wrap="wrap">
         <CalendarViewToggle view={view} date={date} />
+        {onBlockTime ? (
+          <Button variant="default" onClick={onBlockTime} disabled={newEventDisabled}>
+            Block time
+          </Button>
+        ) : null}
         <Button onClick={onNewEvent} disabled={newEventDisabled}>
           New event
         </Button>

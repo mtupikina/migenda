@@ -24,6 +24,25 @@ export function BookingActionsMenu({
   onRemove,
   onNote,
 }: BookingActionsMenuProps) {
+  if (occurrence.blocked) {
+    return (
+      <div className="flex flex-col gap-2 text-[#201e1d]">
+        <p className="text-[12px] font-semibold">Blocked time</p>
+        {occurrence.reason ? <p className="text-[11px] opacity-75">{occurrence.reason}</p> : null}
+        <div>
+          <button
+            type="button"
+            className="cursor-pointer border border-accent bg-accent px-2.5 py-1 text-[11px] font-semibold text-white"
+            onClick={onRemove}
+          >
+            Unblock
+          </button>
+        </div>
+        {toast ? <p className="text-[11px] font-semibold text-accent-700">{toast}</p> : null}
+      </div>
+    );
+  }
+
   const completeLabel = occurrence.completed ? 'Completed' : 'Complete';
 
   return (

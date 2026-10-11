@@ -7,5 +7,6 @@ export function useBookingDrag(occurrence: Occurrence) {
   return useDraggable({
     id: bookingDragId(occurrence),
     data: { occurrence },
+    disabled: occurrence.blocked,
   });
 }
