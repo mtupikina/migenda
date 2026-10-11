@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { TIME_BLOCK_REASON_MAX, type Occurrence } from '@migenda/shared';
 
 import { createTimeBlock, ScheduleRequestError } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 import { dashboardFieldClassNames } from '../../classNames/shared';
 import {
   defaultBlockRange,
@@ -60,7 +61,7 @@ export function BlockTimeDialog({
   const mutation = useMutation({
     mutationFn: () => createTimeBlock({ start: startIso, end: endIso, reason: reason.trim() }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       setReason('');
       onBlocked?.();
       onClose();

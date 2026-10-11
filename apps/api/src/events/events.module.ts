@@ -8,6 +8,7 @@ import { CalendarEvent, CalendarEventSchema } from './event.schema';
 import { EventType, EventTypeSchema } from './event-type.schema';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
+import { SearchService } from './search.service';
 import { TimeBlock, TimeBlockSchema } from './time-block.schema';
 
 @Module({
@@ -22,6 +23,6 @@ import { TimeBlock, TimeBlockSchema } from './time-block.schema';
     ]),
   ],
   controllers: [EventsController],
-  providers: [EventsService],
+  providers: [EventsService, SearchService],
 })
 export class EventsModule {}

@@ -7,6 +7,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordConfirmPage } from './pages/ResetPasswordConfirmPage';
 import { AppRouteStubPage } from './pages/AppRouteStubPage';
+import { SearchPage } from './pages/SearchPage';
 import { LogoutPage } from './pages/LogoutPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -25,7 +26,7 @@ export function App() {
       <Route path="/calendar/day/:date" element={<CalendarPage view="day" />} />
       <Route path="/calendar/week/:date" element={<CalendarPage view="week" />} />
       <Route path="/calendar/month/:date" element={<CalendarPage view="month" />} />
-      <Route path="/search" element={<AppRouteStubPage />} />
+      <Route path="/search" element={<SearchPage />} />
       <Route path="/reports" element={<AppRouteStubPage />} />
       <Route path="/team" element={<AppRouteStubPage />} />
       <Route path="/profile" element={<ProfilePage />} />

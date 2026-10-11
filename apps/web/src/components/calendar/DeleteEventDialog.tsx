@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DeleteEventScope, Occurrence } from '@migenda/shared';
 
 import { deleteEvent, ScheduleRequestError } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 
 type DeleteEventDialogProps = {
   occurrence: Occurrence | null;
@@ -20,7 +21,7 @@ export function DeleteEventDialog({ occurrence, onClose }: DeleteEventDialogProp
       return deleteEvent(occurrence.eventId, occurrence.seriesStart, scope);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       onClose();
     },
   });

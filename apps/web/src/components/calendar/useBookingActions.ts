@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Occurrence } from '@migenda/shared';
 
 import { completeEvent, deleteTimeBlock, duplicateEvent, ScheduleRequestError } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 
 export function occurrenceKey(occurrence: Occurrence): string {
   return `${occurrence.eventId}-${occurrence.seriesStart}`;
@@ -17,7 +18,7 @@ export function useBookingActions(resetKey: string) {
   const complete = useMutation({
     mutationFn: (occurrence: Occurrence) => completeEvent(occurrence.eventId, occurrence.seriesStart),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       setToast('Marked complete');
     },
     onError: (error) => {
@@ -28,7 +29,7 @@ export function useBookingActions(resetKey: string) {
   const duplicate = useMutation({
     mutationFn: (occurrence: Occurrence) => duplicateEvent(occurrence.eventId, occurrence.seriesStart, occurrence.end),
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       setToast(`Duplicated to ${format(new Date(result.start), 'EEEE, MMMM d')}`);
     },
     onError: (error) => {
@@ -39,7 +40,7 @@ export function useBookingActions(resetKey: string) {
   const unblock = useMutation({
     mutationFn: (occurrence: Occurrence) => deleteTimeBlock(occurrence.eventId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       setToast('Time unblocked');
       clear();
     },
@@ -75,6 +76,28 @@ export function useBookingActions(resetKey: string) {
     setToast(null);
   }, []);
 
+  const toggle = useCallback(
+    (key: string, element: HTMLElement) => {
+      if (selectedKey === key) {
+        clear();
+        return;
+      }
+      select(key, element);
+    },
+    [clear, select, selectedKey],
+  );
+
+  const pickSlot = useCallback(
+    (open: () => void) => {
+      if (selectedKey) {
+        clear();
+        return;
+      }
+      open();
+    },
+    [clear, selectedKey],
+  );
+
   return {
     selectedKey,
     anchor,
@@ -83,6 +106,8 @@ export function useBookingActions(resetKey: string) {
     duplicating: duplicate.isPending,
     unblocking: unblock.isPending,
     select,
+    toggle,
+    pickSlot,
     clear,
     notify: (message: string) => setToast(message),
     complete: (occurrence: Occurrence) => complete.mutate(occurrence),

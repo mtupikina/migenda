@@ -22,3 +22,6 @@ export const dashboardFieldClassNames = {
   input:
     'min-h-9 border-[color-mix(in_srgb,#201e1d_40%,transparent)] bg-surface text-[14px] caret-accent hover:border-[color-mix(in_srgb,#201e1d_45%,transparent)] focus:border-accent',
 };
+
+export const searchInputClassName =
+  'min-h-[42px] border-[color-mix(in_srgb,#201e1d_40%,transparent)] bg-surface px-3.5 text-[15px] caret-accent hover:border-[color-mix(in_srgb,#201e1d_45%,transparent)] focus:border-accent';

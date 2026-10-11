@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Dashboard, Occurrence } from '@migenda/shared';
 
 import { moveEvent, ScheduleRequestError } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 import {
   dragOccurrence,
   dropPreview,
@@ -63,7 +64,7 @@ export function CalendarDragProvider({ occurrences, children }: CalendarDragProv
       booking.notify(message);
     },
     onSettled: async (result, _error, input) => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       await queryClient.invalidateQueries({ queryKey: ['event', input.occurrence.eventId] });
       if (result?.id) {
         await queryClient.invalidateQueries({ queryKey: ['event', result.id] });

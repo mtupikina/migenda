@@ -78,7 +78,7 @@ export function MonthCalendarCell({
               selected={picked}
               onSelect={(anchor) => {
                 onClearSlot();
-                booking.select(key, anchor);
+                booking.toggle(key, anchor);
               }}
             />
           );

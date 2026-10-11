@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Loader, Text } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
 import type { Occurrence } from '@migenda/shared';
 
-import { fetchDashboard } from '../api/events';
 import { calendarPath, calendarRange, parseCalendarDate, type CalendarView } from '../schedule/calendarPeriod';
 import { AppNav } from '../components/AppNav';
 import { CalendarToolbar } from '../components/calendar/CalendarToolbar';
@@ -16,8 +14,11 @@ import { NotesDialog } from '../components/calendar/NotesDialog';
 import { CalendarDragProvider } from '../components/calendar/CalendarDragProvider';
 import { DayCalendar } from '../components/calendar/DayCalendar';
 import { MonthCalendar } from '../components/calendar/MonthCalendar';
+import { useCalendarSearchFocus } from '../components/calendar/useCalendarSearchFocus';
+import { occurrenceKey } from '../components/calendar/useBookingActions';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
 import { NewEventDialog } from '../components/dashboard/NewEventDialog';
+import { useDashboard } from '../hooks/useDashboard';
 import { useRequireAuth } from '../hooks/useRequireAuth';
 import { dayKey } from '../schedule/dashboardDays';
 import { slotEventRange } from '../schedule/newEventForm';
@@ -38,19 +39,11 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const [deleting, setDeleting] = useState<Occurrence | null>(null);
   const [noting, setNoting] = useState<Occurrence | null>(null);
+  const [focusKey, setFocusKey] = useState<string | null>(null);
   const [blockingTime, setBlockingTime] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const range = date ? calendarRange(view, date) : null;
-  const dashboard = useQuery({
-    queryKey: ['dashboard', range?.from, range?.to],
-    queryFn: () => {
-      if (!range) {
-        throw new Error('Missing range');
-      }
-      return fetchDashboard(range);
-    },
-    enabled: Boolean(user) && range !== null,
-  });
+  const dashboard = useDashboard(range, Boolean(user));
 
   useEffect(() => {
     if (date) {
@@ -60,6 +53,9 @@ export function CalendarPage({ view }: CalendarPageProps) {
   }, [date, navigate, view]);
 
   const schedule = dashboard.data;
+  useCalendarSearchFocus(schedule?.occurrences, (occurrence) => {
+    setFocusKey(occurrenceKey(occurrence));
+  });
   const showLoader = isLoading || !user || !date;
   const slotDate = slot ? parseCalendarDate(slot.day) : null;
   const slotRange = slotDate && slot ? slotEventRange(slotDate, slot.hour) : null;
@@ -126,6 +122,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
                   occurrences={schedule.occurrences}
                   date={date}
                   selectedHour={slot && slot.day === dayKey(date) ? slot.hour : null}
+                  focusKey={focusKey}
                   onSelectHour={(hour) => openSlot(date, hour)}
                   onClearHour={() => setSlot(null)}
                 />

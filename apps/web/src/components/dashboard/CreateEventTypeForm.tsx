@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createEventTypeSchema, EVENT_TYPE_COLORS, type CreateEventTypeInput } from '@migenda/shared';
 
 import { createEventType, ScheduleRequestError } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 import { dashboardFieldClassNames } from '../../classNames/shared';
 import { EventTypeColorPicker } from './EventTypeColorPicker';
 
@@ -18,7 +19,7 @@ export function CreateEventTypeForm({ onCreated, onCancel }: CreateEventTypeForm
   const mutation = useMutation({
     mutationFn: createEventType,
     onSuccess: async (created) => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       onCreated(created.id);
     },
   });

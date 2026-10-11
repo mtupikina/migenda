@@ -52,3 +52,17 @@ export {
   type PatchProfileInput,
   type UpdateProfileInput,
 } from './profile';
+export {
+  SEARCH_QUERY_MAX,
+  SEARCH_RESULT_MAX,
+  escapeSearchRegex,
+  searchEventHitSchema,
+  searchHitSchema,
+  searchMatchParts,
+  searchNoteHitSchema,
+  searchResponseSchema,
+  type SearchEventHit,
+  type SearchHit,
+  type SearchNoteHit,
+  type SearchResponse,
+} from './search';

@@ -39,7 +39,7 @@ export function WeekCalendarColumn({
           date={date}
           hour={hour}
           selected={hour === selectedHour}
-          onSelect={onSelectHour}
+          onSelect={(nextHour) => booking.pickSlot(() => onSelectHour(nextHour))}
         />
       ))}
       <CalendarHourDropMarker day={viewedDay} hourPx={WEEK_CALENDAR_HOUR_PX} insetClass="right-1 left-1" />
@@ -53,7 +53,7 @@ export function WeekCalendarColumn({
             selected={selected}
             onSelect={(anchor) => {
               onClearSlot();
-              booking.select(key, anchor);
+              booking.toggle(key, anchor);
             }}
           />
         );

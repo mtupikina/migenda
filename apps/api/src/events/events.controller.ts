@@ -12,15 +12,25 @@ import { CreateEventTypeDto } from './create-event-type.dto';
 import { DashboardQueryDto } from './dashboard-query.dto';
 import { EventsService } from './events.service';
 import { MoveEventDto } from './move-event.dto';
+import { SearchQueryDto } from './search-query.dto';
+import { SearchService } from './search.service';
 import { UpdateEventDto } from './update-event.dto';
 
 @Controller()
 export class EventsController {
-  constructor(private readonly events: EventsService) {}
+  constructor(
+    private readonly events: EventsService,
+    private readonly search: SearchService,
+  ) {}
 
   @Get('dashboard')
   dashboard(@Req() req: Request, @Query() query: DashboardQueryDto) {
     return this.events.dashboard(sessionId(req), query.from, query.to);
+  }
+
+  @Get('search')
+  find(@Req() req: Request, @Query() query: SearchQueryDto) {
+    return this.search.search(sessionId(req), query.q, query.from);
   }
 
   @Post('events')

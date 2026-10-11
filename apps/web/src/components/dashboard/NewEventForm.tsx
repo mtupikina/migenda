@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AssigneeOption, CreateEventInput, DeleteEventScope, EventType } from '@migenda/shared';
 
 import { createEvent, ScheduleRequestError, updateEvent } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 import { dashboardFieldClassNames } from '../../classNames/shared';
 import { defaultEventRange, newEventFormSchema, type NewEventFormValues } from '../../schedule/newEventForm';
 import { EditEventSave } from './EditEventSave';
@@ -62,7 +63,7 @@ export function NewEventForm({
       return createEvent(input);
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await invalidateSchedule(queryClient);
       await queryClient.invalidateQueries({ queryKey: ['event'] });
       onCreated(data?.warning);
     },

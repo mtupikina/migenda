@@ -9,6 +9,7 @@ import { blockBox } from '../dashboard/miniCalendarLayout';
 import { BookingDragGhost } from './BookingDragGhost';
 import { OccurrenceDoneMark } from './OccurrenceDoneMark';
 import { DAY_CALENDAR_HOUR_PX } from './dayCalendarLayout';
+import { occurrenceKey } from './useBookingActions';
 import { useBookingDrag } from './useBookingDrag';
 import { useCalendarDrag } from './calendarDragContext';
 
@@ -48,6 +49,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
     height: box.height,
   };
 
+  const key = occurrenceKey(occurrence);
   const handleClick = (target: HTMLElement) => {
     if (drag.ignoreClick()) {
       return;
@@ -71,6 +73,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
         role="button"
         tabIndex={0}
         aria-pressed={selected}
+        data-occurrence-key={key}
         className={`absolute right-2 left-2 z-10 flex cursor-pointer overflow-hidden border border-[#d4d1cd] bg-[repeating-linear-gradient(135deg,transparent,transparent_8px,color-mix(in_srgb,#201e1d_5%,transparent)_8px,color-mix(in_srgb,#201e1d_5%,transparent)_16px)] bg-[#f3f1ee] px-3 py-2 text-[#201e1d] shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_14%,transparent)] ${picked}`}
         style={frame}
         onClick={(event) => handleClick(event.currentTarget)}
@@ -89,6 +92,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
   return (
     <div
       ref={setNodeRef}
+      data-occurrence-key={key}
       className={`absolute right-2 left-2 z-10 flex cursor-grab overflow-hidden px-3 shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_28%,transparent)] ${openLayout(occurrence.completed)} ${textOnColor} ${picked}`}
       style={{ ...frame, background: occurrence.typeColor }}
       {...listeners}

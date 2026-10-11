@@ -19,16 +19,27 @@ type DayCalendarProps = {
   occurrences: Occurrence[];
   date: Date;
   selectedHour: number | null;
+  focusKey?: string | null;
   onSelectHour: (hour: number) => void;
   onClearHour: () => void;
 };
 
-export function DayCalendar({ occurrences, date, selectedHour, onSelectHour, onClearHour }: DayCalendarProps) {
+export function DayCalendar({
+  occurrences,
+  date,
+  selectedHour,
+  focusKey,
+  onSelectHour,
+  onClearHour,
+}: DayCalendarProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const viewedDay = dayKey(date);
   const day = occurrencesOn(occurrences, viewedDay);
   const isToday = viewedDay === dayKey(new Date());
   const booking = useBookingSelection();
+  const appliedFocus = useRef<string | null>(null);
+  const onClearHourRef = useRef(onClearHour);
+  onClearHourRef.current = onClearHour;
 
   useLayoutEffect(() => {
     const node = scroller.current;
@@ -37,6 +48,28 @@ export function DayCalendar({ occurrences, date, selectedHour, onSelectHour, onC
     }
     node.scrollTop = DAY_CALENDAR_OPEN_HOUR * DAY_CALENDAR_HOUR_PX;
   }, [viewedDay]);
+
+  useLayoutEffect(() => {
+    if (!focusKey) {
+      appliedFocus.current = null;
+      return;
+    }
+    if (appliedFocus.current === focusKey) {
+      return;
+    }
+    const root = scroller.current;
+    if (!root) {
+      return;
+    }
+    const node = root.querySelector(`[data-occurrence-key="${CSS.escape(focusKey)}"]`);
+    appliedFocus.current = focusKey;
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    onClearHourRef.current();
+    booking.select(focusKey, node);
+    node.scrollIntoView({ block: 'center' });
+  }, [booking.select, focusKey]);
 
   return (
     <div className="mx-auto mt-6 max-w-[520px]">
@@ -61,10 +94,7 @@ export function DayCalendar({ occurrences, date, selectedHour, onSelectHour, onC
                   day={viewedDay}
                   hour={hour}
                   selected={hour === selectedHour}
-                  onSelect={(nextHour) => {
-                    booking.clear();
-                    onSelectHour(nextHour);
-                  }}
+                  onSelect={(nextHour) => booking.pickSlot(() => onSelectHour(nextHour))}
                 />
               ))}
               <CalendarHourDropMarker day={viewedDay} hourPx={DAY_CALENDAR_HOUR_PX} insetClass="right-2 left-2" />
@@ -77,7 +107,7 @@ export function DayCalendar({ occurrences, date, selectedHour, onSelectHour, onC
                     selected={key === booking.selectedKey}
                     onSelect={(anchor) => {
                       onClearHour();
-                      booking.select(key, anchor);
+                      booking.toggle(key, anchor);
                     }}
                   />
                 );

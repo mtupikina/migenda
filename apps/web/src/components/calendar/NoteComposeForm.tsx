@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { EVENT_DESCRIPTION_MAX } from '@migenda/shared';
 
 import { createNote, ScheduleRequestError } from '../../api/events';
+import { invalidateSchedule } from '../../api/invalidateSchedule';
 import { dashboardFieldClassNames } from '../../classNames/shared';
 import { noteFormSchema, type NoteFormValues } from '../../schedule/noteForm';
 
@@ -30,6 +31,7 @@ export function NoteComposeForm({ eventId, occurrenceStart, onClose }: NoteCompo
     mutationFn: (text: string) => createNote(eventId, occurrenceStart, text),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['notes', eventId, occurrenceStart] });
+      await invalidateSchedule(queryClient);
       reset({ text: '' });
     },
   });
