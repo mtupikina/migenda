@@ -10,6 +10,7 @@ import { AppRouteStubPage } from './pages/AppRouteStubPage';
 import { SearchPage } from './pages/SearchPage';
 import { LogoutPage } from './pages/LogoutPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ReportsPage } from './pages/ReportsPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 export function App() {
@@ -27,7 +28,8 @@ export function App() {
       <Route path="/calendar/week/:date" element={<CalendarPage view="week" />} />
       <Route path="/calendar/month/:date" element={<CalendarPage view="month" />} />
       <Route path="/search" element={<SearchPage />} />
-      <Route path="/reports" element={<AppRouteStubPage />} />
+      <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/reports/generated" element={<AppRouteStubPage />} />
       <Route path="/team" element={<AppRouteStubPage />} />
       <Route path="/profile" element={<ProfilePage />} />
     </Routes>

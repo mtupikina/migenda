@@ -164,6 +164,14 @@ export async function createEvent(input: CreateEventInput): Promise<{ id: string
   return response.json() as Promise<{ id: string; warning?: string }>;
 }
 
+export async function fetchEventTypes(): Promise<EventType[]> {
+  const response = await fetch(apiPath('/event-types'), { credentials: 'include' });
+  if (!response.ok) {
+    throw new ScheduleRequestError('Could not load your event types.');
+  }
+  return response.json() as Promise<EventType[]>;
+}
+
 export async function createEventType(input: CreateEventTypeInput): Promise<EventType> {
   const response = await fetch(apiPath('/event-types'), {
     method: 'POST',

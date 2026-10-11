@@ -86,6 +86,11 @@ export class EventsController {
     return this.events.moveEvent(sessionId(req), eventId, dto);
   }
 
+  @Get('event-types')
+  listTypes(@Req() req: Request) {
+    return this.events.listTypes(sessionId(req));
+  }
+
   @Post('event-types')
   createType(@Req() req: Request, @Body() dto: CreateEventTypeDto) {
     return this.events.createType(sessionId(req), dto);

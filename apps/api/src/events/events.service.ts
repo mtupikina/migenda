@@ -69,7 +69,7 @@ export class EventsService {
           ],
         })
         .exec(),
-      this.types.find({ userId: user._id }).sort({ name: 1 }).exec(),
+      this.typesOf(user),
       this.timeBlocks.find({ userId: user._id, start: { $lt: to }, end: { $gt: from } }).exec(),
     ]);
     const exceptionDocs = await this.exceptions
@@ -287,6 +287,12 @@ export class EventsService {
     return { id: targetId, start: newStart.toISOString(), end: newEnd.toISOString() };
   }
 
+  async listTypes(sid: string): Promise<EventTypeDto[]> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const typeDocs = await this.typesOf(user);
+    return typeDocs.map(toEventType);
+  }
+
   async createType(sid: string, dto: CreateEventTypeDto): Promise<EventTypeDto> {
     const user = await this.auth.resolveUserFromSession(sid);
     const existing = await this.types
@@ -346,6 +352,10 @@ export class EventsService {
     if (!deleted) {
       throw new NotFoundException('Block not found');
     }
+  }
+
+  private typesOf(user: UserDocument): Promise<EventTypeDocument[]> {
+    return this.types.find({ userId: user._id }).sort({ name: 1 }).exec();
   }
 
   private assertAssignee(user: UserDocument, assigneeId: string): void {

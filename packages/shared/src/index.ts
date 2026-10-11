@@ -52,6 +52,7 @@ export {
   type PatchProfileInput,
   type UpdateProfileInput,
 } from './profile';
+export { REPORT_PERIODS, reportRangeSchema, type ReportPeriod, type ReportRange } from './report';
 export {
   SEARCH_QUERY_MAX,
   SEARCH_RESULT_MAX,
