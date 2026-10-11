@@ -5,19 +5,21 @@ import { useQuery } from '@tanstack/react-query';
 import type { Occurrence } from '@migenda/shared';
 
 import { fetchDashboard } from '../api/events';
-import { calendarPath, calendarRange, parseCalendarDate, type CalendarView } from '../calendarPeriod';
+import { calendarPath, calendarRange, parseCalendarDate, type CalendarView } from '../schedule/calendarPeriod';
 import { AppNav } from '../components/AppNav';
 import { CalendarToolbar } from '../components/calendar/CalendarToolbar';
 import { BookingActionsProvider } from '../components/calendar/BookingActionsProvider';
+import { BookingNotice } from '../components/calendar/BookingNotice';
 import { DeleteEventDialog } from '../components/calendar/DeleteEventDialog';
 import { NotesDialog } from '../components/calendar/NotesDialog';
+import { CalendarDragProvider } from '../components/calendar/CalendarDragProvider';
 import { DayCalendar } from '../components/calendar/DayCalendar';
 import { MonthCalendar } from '../components/calendar/MonthCalendar';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
 import { NewEventDialog } from '../components/dashboard/NewEventDialog';
 import { useRequireAuth } from '../hooks/useRequireAuth';
-import { dayKey } from '../dashboardDays';
-import { slotEventRange } from '../newEventForm';
+import { dayKey } from '../schedule/dashboardDays';
+import { slotEventRange } from '../schedule/newEventForm';
 import { DAY_CALENDAR_OPEN_HOUR } from '../components/calendar/dayCalendarLayout';
 
 type CalendarPageProps = {
@@ -35,6 +37,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const [slot, setSlot] = useState<{ day: string; hour: number } | null>(null);
   const [deleting, setDeleting] = useState<Occurrence | null>(null);
   const [noting, setNoting] = useState<Occurrence | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const range = date ? calendarRange(view, date) : null;
   const dashboard = useQuery({
     queryKey: ['dashboard', range?.from, range?.to],
@@ -58,6 +61,14 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const showLoader = isLoading || !user || !date;
   const slotDate = slot ? parseCalendarDate(slot.day) : null;
   const slotRange = slotDate && slot ? slotEventRange(slotDate, slot.hour) : null;
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+    const id = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [notice]);
+
   const closeDialog = () => {
     setDialogOpen(false);
     setSlot(null);
@@ -106,34 +117,36 @@ export function CalendarPage({ view }: CalendarPageProps) {
             onRemove={setDeleting}
             onNote={setNoting}
           >
-            {view === 'day' ? (
-              <DayCalendar
-                occurrences={schedule.occurrences}
-                date={date}
-                selectedHour={slot && slot.day === dayKey(date) ? slot.hour : null}
-                onSelectHour={(hour) => openSlot(date, hour)}
-                onClearHour={() => setSlot(null)}
-              />
-            ) : null}
-            {view === 'week' ? (
-              <WeekCalendar
-                occurrences={schedule.occurrences}
-                date={date}
-                selectedDay={slot?.day ?? null}
-                selectedHour={slot?.hour ?? null}
-                onSelectSlot={openSlot}
-                onClearSlot={() => setSlot(null)}
-              />
-            ) : null}
-            {view === 'month' ? (
-              <MonthCalendar
-                occurrences={schedule.occurrences}
-                date={date}
-                selectedDay={slot?.day ?? null}
-                onSelectDay={(day) => openSlot(day, DAY_CALENDAR_OPEN_HOUR)}
-                onClearSlot={() => setSlot(null)}
-              />
-            ) : null}
+            <CalendarDragProvider occurrences={schedule.occurrences}>
+              {view === 'day' ? (
+                <DayCalendar
+                  occurrences={schedule.occurrences}
+                  date={date}
+                  selectedHour={slot && slot.day === dayKey(date) ? slot.hour : null}
+                  onSelectHour={(hour) => openSlot(date, hour)}
+                  onClearHour={() => setSlot(null)}
+                />
+              ) : null}
+              {view === 'week' ? (
+                <WeekCalendar
+                  occurrences={schedule.occurrences}
+                  date={date}
+                  selectedDay={slot?.day ?? null}
+                  selectedHour={slot?.hour ?? null}
+                  onSelectSlot={openSlot}
+                  onClearSlot={() => setSlot(null)}
+                />
+              ) : null}
+              {view === 'month' ? (
+                <MonthCalendar
+                  occurrences={schedule.occurrences}
+                  date={date}
+                  selectedDay={slot?.day ?? null}
+                  onSelectDay={(day) => openSlot(day, DAY_CALENDAR_OPEN_HOUR)}
+                  onClearSlot={() => setSlot(null)}
+                />
+              ) : null}
+            </CalendarDragProvider>
           </BookingActionsProvider>
         ) : null}
         {schedule ? (
@@ -146,9 +159,15 @@ export function CalendarPage({ view }: CalendarPageProps) {
               eventId={editingEventId}
               occurrenceStart={editingOccurrenceStart}
               onClose={closeDialog}
+              onSaved={(warning) => {
+                if (warning) {
+                  setNotice(warning);
+                }
+              }}
             />
             <DeleteEventDialog occurrence={deleting} onClose={() => setDeleting(null)} />
             <NotesDialog occurrence={noting} onClose={() => setNoting(null)} />
+            <BookingNotice message={notice} />
           </>
         ) : null}
       </Box>

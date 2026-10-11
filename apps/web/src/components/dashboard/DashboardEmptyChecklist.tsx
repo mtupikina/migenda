@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button, Group, Stack, Text } from '@mantine/core';
 import { CalendarCheck } from 'lucide-react';
 
-import { dayKey } from '../../dashboardDays';
+import { dayKey } from '../../schedule/dashboardDays';
 import { dashboardPanelClassName } from '../../classNames/shared';
 
 type DashboardEmptyChecklistProps = {

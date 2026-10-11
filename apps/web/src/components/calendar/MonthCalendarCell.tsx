@@ -1,12 +1,16 @@
+import { useDroppable } from '@dnd-kit/core';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import type { Occurrence } from '@migenda/shared';
 
-import { calendarPath } from '../../calendarPeriod';
-import { dayKey, occurrencesOn } from '../../dashboardDays';
+import { dayDropId } from '../../schedule/calendarDrag';
+import { calendarPath } from '../../schedule/calendarPeriod';
+import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
+import { CalendarDayDropMarker } from './CalendarDayDropMarker';
 import { MonthCalendarChip } from './MonthCalendarChip';
 import { MonthCalendarMore } from './MonthCalendarMore';
 import { MONTH_CALENDAR_CHIP_LIMIT, monthCellFrameClass } from './monthCalendarLayout';
+import { useCalendarDropPreview } from './calendarDragContext';
 import { occurrenceKey, useBookingSelection } from './useBookingActions';
 
 type MonthCalendarCellProps = {
@@ -29,7 +33,12 @@ export function MonthCalendarCell({
   onClearSlot,
 }: MonthCalendarCellProps) {
   const booking = useBookingSelection();
-  const events = occurrencesOn(occurrences, dayKey(date));
+  const viewedDay = dayKey(date);
+  const dropId = dayDropId(viewedDay);
+  const { setNodeRef } = useDroppable({ id: dropId });
+  const preview = useCalendarDropPreview();
+  const canDrop = preview?.overId === dropId;
+  const events = occurrencesOn(occurrences, viewedDay);
   const visible = events.slice(0, MONTH_CALENDAR_CHIP_LIMIT);
   const outside = format(date, 'yyyy-MM') !== format(month, 'yyyy-MM');
   const weekend = date.getDay() === 0 || date.getDay() === 6;
@@ -42,9 +51,12 @@ export function MonthCalendarCell({
   const numberClass = isToday
     ? 'text-[16px] font-extrabold text-accent-700'
     : 'text-[16px] font-extrabold text-[#201e1d]';
+  const drop = canDrop
+    ? 'outline outline-2 outline-dashed outline-accent bg-[color-mix(in_srgb,#ec3013_10%,transparent)]'
+    : '';
 
   return (
-    <div className={`relative min-h-[92px] p-1 ${monthCellFrameClass(index)} ${tint} ${fade}`}>
+    <div ref={setNodeRef} className={`relative min-h-[92px] p-1 ${monthCellFrameClass(index)} ${tint} ${fade} ${drop}`}>
       <button
         type="button"
         aria-label={format(date, 'EEEE, MMMM d')}
@@ -55,6 +67,7 @@ export function MonthCalendarCell({
         <Link to={calendarPath('day', date)} className={`mb-1 block no-underline hover:text-accent ${numberClass}`}>
           {format(date, 'd')}
         </Link>
+        {canDrop ? <CalendarDayDropMarker date={date} /> : null}
         {visible.map((occurrence) => {
           const key = occurrenceKey(occurrence);
           const picked = key === booking.selectedKey;

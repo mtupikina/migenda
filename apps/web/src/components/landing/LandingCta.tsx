@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Box, Button, Container, Title } from '@mantine/core';
 
-import type { LandingVisitor } from '../../landingVisitor';
+import type { LandingVisitor } from './landingVisitor';
 
 export function LandingCta({ visitor }: { visitor: LandingVisitor }) {
   const showGuest = visitor === 'guest';

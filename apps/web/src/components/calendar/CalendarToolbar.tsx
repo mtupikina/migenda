@@ -1,6 +1,6 @@
 import { Button, Group } from '@mantine/core';
 
-import type { CalendarView } from '../../calendarPeriod';
+import type { CalendarView } from '../../schedule/calendarPeriod';
 import { CalendarPeriodControls } from './CalendarPeriodControls';
 import { CalendarViewToggle } from './CalendarViewToggle';
 

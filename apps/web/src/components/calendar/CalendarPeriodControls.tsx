@@ -3,7 +3,7 @@ import { Button, Group, Title } from '@mantine/core';
 import { startOfDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { calendarHeading, calendarPath, shiftCalendarDate, type CalendarView } from '../../calendarPeriod';
+import { calendarHeading, calendarPath, shiftCalendarDate, type CalendarView } from '../../schedule/calendarPeriod';
 
 type CalendarPeriodControlsProps = {
   view: CalendarView;

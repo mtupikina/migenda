@@ -9,7 +9,7 @@ import type {
 } from '@migenda/shared';
 
 import { apiPath } from './apiPath';
-import { dashboardRange, type DashboardRange } from '../dashboardRange';
+import { dashboardRange, type DashboardRange } from '../schedule/dashboardRange';
 
 export class ScheduleRequestError extends Error {
   constructor(message: string) {
@@ -111,23 +111,46 @@ export async function fetchEvent(eventId: string, occurrenceStart?: string | nul
   return response.json() as Promise<EventDetail>;
 }
 
+export async function moveEvent(
+  eventId: string,
+  occurrenceStart: string,
+  start: string,
+): Promise<{ id: string; start: string; end: string }> {
+  const response = await fetch(apiPath(`/events/${eventId}/move`), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ occurrenceStart, start }),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not move the task.'));
+  }
+  return response.json() as Promise<{ id: string; start: string; end: string }>;
+}
+
 export async function updateEvent(
   eventId: string,
   input: CreateEventInput,
   occurrenceStart?: string | null,
-): Promise<void> {
+  scope?: DeleteEventScope | null,
+): Promise<{ id: string; warning?: string }> {
   const response = await fetch(apiPath(`/events/${eventId}`), {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...input, occurrenceStart: occurrenceStart ?? undefined }),
+    body: JSON.stringify({
+      ...input,
+      occurrenceStart: occurrenceStart ?? undefined,
+      scope: scope ?? undefined,
+    }),
   });
   if (!response.ok) {
     throw new ScheduleRequestError(await errorMessage(response, 'Could not save the changes.'));
   }
+  return response.json() as Promise<{ id: string; warning?: string }>;
 }
 
-export async function createEvent(input: CreateEventInput): Promise<void> {
+export async function createEvent(input: CreateEventInput): Promise<{ id: string; warning?: string }> {
   const response = await fetch(apiPath('/events'), {
     method: 'POST',
     credentials: 'include',
@@ -137,6 +160,7 @@ export async function createEvent(input: CreateEventInput): Promise<void> {
   if (!response.ok) {
     throw new ScheduleRequestError(await errorMessage(response, 'Could not create the task.'));
   }
+  return response.json() as Promise<{ id: string; warning?: string }>;
 }
 
 export async function createEventType(input: CreateEventTypeInput): Promise<EventType> {

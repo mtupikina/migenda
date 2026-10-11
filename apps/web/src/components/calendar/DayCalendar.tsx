@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { Occurrence } from '@migenda/shared';
 
-import { dayKey, occurrencesOn } from '../../dashboardDays';
+import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
 import { dashboardPanelClassName } from '../../classNames/shared';
+import { CalendarHourDropMarker } from './CalendarHourDropMarker';
 import { DayCalendarBlock } from './DayCalendarBlock';
 import { DayCalendarLegend } from './DayCalendarLegend';
 import { DayCalendarNow } from './DayCalendarNow';
@@ -57,14 +58,16 @@ export function DayCalendar({ occurrences, date, selectedHour, onSelectHour, onC
               {DAY_CALENDAR_HOURS.map((hour) => (
                 <DayCalendarSlot
                   key={hour}
+                  day={viewedDay}
                   hour={hour}
                   selected={hour === selectedHour}
-                  onSelect={(hour) => {
+                  onSelect={(nextHour) => {
                     booking.clear();
-                    onSelectHour(hour);
+                    onSelectHour(nextHour);
                   }}
                 />
               ))}
+              <CalendarHourDropMarker day={viewedDay} hourPx={DAY_CALENDAR_HOUR_PX} insetClass="right-2 left-2" />
               {day.map((occurrence) => {
                 const key = occurrenceKey(occurrence);
                 return (

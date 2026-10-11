@@ -1,7 +1,7 @@
 import { DateTimePicker } from '@mantine/dates';
 
 import { dashboardFieldClassNames } from '../../classNames/shared';
-import { toFormDateTime } from '../../eventDateValue';
+import { toFormDateTime } from '../../schedule/eventDateValue';
 
 type EventDateTimeFieldProps = {
   label: string;

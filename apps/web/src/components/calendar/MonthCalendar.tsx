@@ -1,8 +1,8 @@
 import type { Occurrence } from '@migenda/shared';
 
-import { monthGridDays } from '../../calendarPeriod';
+import { monthGridDays } from '../../schedule/calendarPeriod';
 import { dashboardPanelClassName } from '../../classNames/shared';
-import { dayKey } from '../../dashboardDays';
+import { dayKey } from '../../schedule/dashboardDays';
 import { DayCalendarLegend } from './DayCalendarLegend';
 import { MonthCalendarCell } from './MonthCalendarCell';
 import { MonthCalendarWeekdays } from './MonthCalendarWeekdays';

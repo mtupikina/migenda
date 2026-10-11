@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { Occurrence } from '@migenda/shared';
 
-import { weekDays } from '../../calendarPeriod';
-import { dayKey } from '../../dashboardDays';
+import { weekDays } from '../../schedule/calendarPeriod';
+import { dayKey } from '../../schedule/dashboardDays';
 import { dashboardPanelClassName } from '../../classNames/shared';
 import { DayCalendarLegend } from './DayCalendarLegend';
 import { WeekCalendarColumn } from './WeekCalendarColumn';

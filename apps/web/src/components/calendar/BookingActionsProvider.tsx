@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import type { Occurrence } from '@migenda/shared';
 
+import { BookingNotice } from './BookingNotice';
 import { BookingActionsPopover } from './BookingActionsPopover';
 import { BookingActionsContext, occurrenceKey, useBookingActions } from './useBookingActions';
 
@@ -36,6 +37,7 @@ export function BookingActionsProvider({
   return (
     <BookingActionsContext.Provider value={booking}>
       {children}
+      {selected ? null : <BookingNotice message={booking.toast} />}
       <BookingActionsPopover
         occurrence={selected}
         anchor={booking.anchor}
@@ -59,7 +61,7 @@ export function BookingActionsProvider({
           if (!selected) {
             return;
           }
-          onEdit(selected.eventId, selected.start);
+          onEdit(selected.eventId, selected.seriesStart);
         }}
         onRemove={() => {
           if (!selected) {

@@ -1,0 +1,21 @@
+---
+description: Reuse an existing function instead of copying its logic
+alwaysApply: true
+---
+
+# No duplicate logic
+
+If the same behavior already exists, call that function. Do not paste a second copy into the file you are writing.
+
+Before adding a helper, search for it. Event label color on a type color is `textOnTypeColor` in `apps/web/src/schedule/textOnTypeColor.ts`. Use that for every booking, chip, and drag card.
+
+```tsx
+// ❌ BAD — the lightness check copied again
+const lightness = Number(typeColor.match(/oklch\(\s*([\d.]+)/)?.[1] ?? 0);
+const textOnColor = lightness > 0.72 ? 'text-[#201e1d]' : 'text-white';
+
+// ✅ GOOD
+const textOnColor = textOnTypeColor(typeColor);
+```
+
+When a new behavior is needed in more than one place, add one function and import it. Do not leave the first copy inline and rewrite it nearby.

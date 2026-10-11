@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Occurrence } from '@migenda/shared';
 import { Button, Group, SimpleGrid, Text } from '@mantine/core';
 
-import { dayKey, occurrencesOn } from '../../dashboardDays';
+import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
 import { dashboardPanelClassName } from '../../classNames/shared';
 import { DashboardAllCoveredNote } from './DashboardAllCoveredNote';
 import { DashboardChecklistColumn } from './DashboardChecklistColumn';

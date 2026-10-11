@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { Occurrence } from '@migenda/shared';
 import { Text } from '@mantine/core';
 
-import { dayKey, occurrencesOn } from '../../dashboardDays';
+import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
 import { dashboardPanelClassName } from '../../classNames/shared';
 import { DashboardMiniCalendarBlock } from './DashboardMiniCalendarBlock';
 import {

@@ -9,7 +9,7 @@ import { LandingStats } from '../components/landing/LandingStats';
 import { MarketingNav } from '../components/MarketingNav';
 import { Rule } from '../components/Rule';
 import { useSession } from '../hooks/useSession';
-import { landingVisitor } from '../landingVisitor';
+import { landingVisitor } from '../components/landing/landingVisitor';
 
 export function LandingPage() {
   const visitor = landingVisitor(useSession());

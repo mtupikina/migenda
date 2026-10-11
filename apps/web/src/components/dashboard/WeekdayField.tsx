@@ -1,7 +1,7 @@
 import { WEEKDAYS } from '@migenda/shared';
 import { Checkbox, Group, Text } from '@mantine/core';
 
-import { toggleWeekday } from '../../weekdaySelection';
+import { toggleWeekday } from '../../schedule/weekdaySelection';
 
 type WeekdayFieldProps = {
   value: number[];

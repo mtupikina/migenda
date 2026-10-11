@@ -107,6 +107,7 @@ export const occurrenceSchema = z.object({
   eventId: z.string(),
   start: z.string(),
   end: z.string(),
+  seriesStart: z.string(),
   title: z.string(),
   typeName: z.string(),
   typeColor: z.string(),
@@ -119,6 +120,32 @@ export const deleteEventScopeSchema = z.enum(['one', 'following', 'series']);
 export type DeleteEventScope = z.infer<typeof deleteEventScopeSchema>;
 
 export type Occurrence = z.infer<typeof occurrenceSchema>;
+
+export function rangeIsOpen(
+  occurrences: Pick<Occurrence, 'eventId' | 'seriesStart' | 'start' | 'end'>[],
+  moving: Pick<Occurrence, 'eventId' | 'seriesStart'>,
+  start: string,
+  end: string,
+): boolean {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  return !occurrences.some((item) => otherOccupies(item, moving, startMs, endMs));
+}
+
+function otherOccupies(
+  item: Pick<Occurrence, 'eventId' | 'seriesStart' | 'start' | 'end'>,
+  moving: Pick<Occurrence, 'eventId' | 'seriesStart'>,
+  startMs: number,
+  endMs: number,
+): boolean {
+  const same = item.eventId === moving.eventId && item.seriesStart === moving.seriesStart;
+  if (same) {
+    return false;
+  }
+  const itemStart = new Date(item.start).getTime();
+  const itemEnd = new Date(item.end).getTime();
+  return itemStart < endMs && startMs < itemEnd;
+}
 
 export const eventNoteSchema = z.object({
   id: z.string(),

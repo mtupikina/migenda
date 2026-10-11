@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
-import { calendarPath } from '../../calendarPeriod';
-import { dayKey } from '../../dashboardDays';
+import { calendarPath } from '../../schedule/calendarPeriod';
+import { dayKey } from '../../schedule/dashboardDays';
 
 type WeekCalendarDayHeaderProps = {
   date: Date;

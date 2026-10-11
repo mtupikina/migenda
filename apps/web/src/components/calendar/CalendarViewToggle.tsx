@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { SegmentedControl } from '@mantine/core';
 
-import { calendarPath, isCalendarView, type CalendarView } from '../../calendarPeriod';
+import { calendarPath, isCalendarView, type CalendarView } from '../../schedule/calendarPeriod';
 
 const VIEWS: { label: string; value: CalendarView }[] = [
   { label: 'Day', value: 'day' },

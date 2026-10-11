@@ -2,7 +2,8 @@ import { format } from 'date-fns';
 import type { Occurrence } from '@migenda/shared';
 
 import { OccurrenceDoneMark } from '../calendar/OccurrenceDoneMark';
-import { formatEventLine } from '../../formatEventLine';
+import { formatEventLine } from '../../schedule/formatEventLine';
+import { textOnTypeColor } from '../../schedule/textOnTypeColor';
 import { blockBox, MINI_CALENDAR_HOUR_PX } from './miniCalendarLayout';
 
 type DashboardMiniCalendarBlockProps = {
@@ -13,8 +14,7 @@ export function DashboardMiniCalendarBlock({ occurrence }: DashboardMiniCalendar
   const box = blockBox(occurrence.start, occurrence.end, MINI_CALENDAR_HOUR_PX);
   const time = format(new Date(occurrence.start), 'HH:mm');
   const line = formatEventLine(occurrence.title, occurrence.typeName, occurrence.start);
-  const lightness = Number(occurrence.typeColor.match(/oklch\(\s*([\d.]+)/)?.[1] ?? 0);
-  const textOnColor = lightness > 0.72 ? 'text-[#201e1d]' : 'text-white';
+  const textOnColor = textOnTypeColor(occurrence.typeColor);
   const stacked = box.height >= 36;
   const doneTitle = occurrence.completed ? 'line-through' : '';
 

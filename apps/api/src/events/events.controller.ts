@@ -10,6 +10,7 @@ import { DuplicateEventDto } from './duplicate-event.dto';
 import { CreateEventTypeDto } from './create-event-type.dto';
 import { DashboardQueryDto } from './dashboard-query.dto';
 import { EventsService } from './events.service';
+import { MoveEventDto } from './move-event.dto';
 import { UpdateEventDto } from './update-event.dto';
 
 @Controller()
@@ -67,6 +68,11 @@ export class EventsController {
   @Post('events/:eventId/complete')
   completeEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: CompleteEventDto) {
     return this.events.completeEvent(sessionId(req), eventId, dto);
+  }
+
+  @Post('events/:eventId/move')
+  moveEvent(@Req() req: Request, @Param('eventId') eventId: string, @Body() dto: MoveEventDto) {
+    return this.events.moveEvent(sessionId(req), eventId, dto);
   }
 
   @Post('event-types')

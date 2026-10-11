@@ -1,7 +1,7 @@
 import type { Occurrence } from '@migenda/shared';
 import { Circle, CircleCheck } from 'lucide-react';
 
-import { formatEventLine } from '../../formatEventLine';
+import { formatEventLine } from '../../schedule/formatEventLine';
 
 type DashboardChecklistItemProps = {
   occurrence: Occurrence;

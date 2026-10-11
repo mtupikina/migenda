@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { calendarPath } from '../../calendarPeriod';
+import { calendarPath } from '../../schedule/calendarPeriod';
 
 type MonthCalendarMoreProps = {
   count: number;

@@ -15,12 +15,12 @@ type NotesDialogProps = {
 
 export function NotesDialog({ occurrence, onClose }: NotesDialogProps) {
   const notes = useQuery({
-    queryKey: ['notes', occurrence?.eventId, occurrence?.start],
+    queryKey: ['notes', occurrence?.eventId, occurrence?.seriesStart],
     queryFn: () => {
       if (!occurrence) {
         throw new Error('Missing event');
       }
-      return fetchNotes(occurrence.eventId, occurrence.start);
+      return fetchNotes(occurrence.eventId, occurrence.seriesStart);
     },
     enabled: occurrence !== null,
   });
@@ -58,9 +58,9 @@ export function NotesDialog({ occurrence, onClose }: NotesDialogProps) {
           ) : null}
           {notes.isError ? <Text fz={13}>Could not load notes.</Text> : null}
           <NoteComposeForm
-            key={`${occurrence.eventId}-${occurrence.start}`}
+            key={`${occurrence.eventId}-${occurrence.seriesStart}`}
             eventId={occurrence.eventId}
-            occurrenceStart={occurrence.start}
+            occurrenceStart={occurrence.seriesStart}
             onClose={onClose}
           />
         </Stack>

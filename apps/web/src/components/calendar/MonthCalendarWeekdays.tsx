@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 
-import { dayKey } from '../../dashboardDays';
+import { dayKey } from '../../schedule/dashboardDays';
 
 type MonthCalendarWeekdaysProps = {
   days: Date[];

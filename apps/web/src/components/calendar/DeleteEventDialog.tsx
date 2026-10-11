@@ -17,7 +17,7 @@ export function DeleteEventDialog({ occurrence, onClose }: DeleteEventDialogProp
       if (!occurrence) {
         throw new Error('Missing event');
       }
-      return deleteEvent(occurrence.eventId, occurrence.start, scope);
+      return deleteEvent(occurrence.eventId, occurrence.seriesStart, scope);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -81,7 +81,7 @@ export function DeleteEventDialog({ occurrence, onClose }: DeleteEventDialogProp
                 loading={pending === 'series'}
                 onClick={() => mutation.mutate('series')}
               >
-                All events, including past ones
+                All events
               </Button>
             ) : null}
           </Group>

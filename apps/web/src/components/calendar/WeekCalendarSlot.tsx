@@ -1,4 +1,8 @@
+import { useDroppable } from '@dnd-kit/core';
 import { format } from 'date-fns';
+
+import { dayKey } from '../../schedule/dashboardDays';
+import { hourDropId } from '../../schedule/calendarDrag';
 
 type WeekCalendarSlotProps = {
   date: Date;
@@ -8,6 +12,7 @@ type WeekCalendarSlotProps = {
 };
 
 export function WeekCalendarSlot({ date, hour, selected, onSelect }: WeekCalendarSlotProps) {
+  const { setNodeRef } = useDroppable({ id: hourDropId(dayKey(date), hour) });
   const fill = selected
     ? 'bg-[color-mix(in_srgb,#ec3013_18%,transparent)]'
     : 'bg-transparent hover:bg-[color-mix(in_srgb,#ec3013_12%,transparent)]';
@@ -15,6 +20,7 @@ export function WeekCalendarSlot({ date, hour, selected, onSelect }: WeekCalenda
 
   return (
     <button
+      ref={setNodeRef}
       type="button"
       aria-label={`${format(date, 'EEEE, MMMM d')}, ${time}`}
       className={`block h-10 w-full cursor-pointer border-x-0 border-b-0 border-t border-[color-mix(in_srgb,#201e1d_14%,transparent)] p-0 ${fill}`}

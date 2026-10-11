@@ -9,6 +9,30 @@ export type EventRule = {
   until: string | null;
 };
 
+type DatedRule = {
+  _id: { toString(): string };
+  start: Date;
+  end: Date;
+  timeZone: string;
+  weekdays: number[];
+  until: string | null;
+};
+
+export function ruleFrom(
+  id: string,
+  start: Date,
+  end: Date,
+  timeZone: string,
+  weekdays: number[],
+  until: string | null,
+): EventRule {
+  return { id, start, end, timeZone, weekdays, until };
+}
+
+export function ruleOf(event: DatedRule): EventRule {
+  return ruleFrom(String(event._id), event.start, event.end, event.timeZone, event.weekdays, event.until);
+}
+
 export type ExpandedOccurrence = {
   eventId: string;
   start: Date;
@@ -24,6 +48,12 @@ export function expandEvent(rule: EventRule, from: Date, to: Date): ExpandedOccu
     return singleOccurrence(rule, duration, from, to);
   }
   return weekdayOccurrences(rule, duration, from, to);
+}
+
+export function containsInstant(rule: EventRule, instant: Date): boolean {
+  const from = new Date(instant.getTime() - 1);
+  const to = new Date(instant.getTime() + 1);
+  return expandEvent(rule, from, to).some((item) => item.start.getTime() === instant.getTime());
 }
 
 function singleOccurrence(
@@ -49,7 +79,7 @@ function weekdayOccurrences(
   const hour = Number(clock.hour);
   const minute = Number(clock.minute);
   const startYmd = zonedYmd(rule.start, rule.timeZone);
-  const scanFrom = earlierYmd(startYmd, addYmd(zonedYmd(from, rule.timeZone), -1));
+  const scanFrom = laterYmd(startYmd, addYmd(zonedYmd(from, rule.timeZone), -1));
   const windowEnd = addYmd(zonedYmd(new Date(to.getTime() - 1), rule.timeZone), 1);
   const scanTo = rule.until && rule.until < windowEnd ? rule.until : windowEnd;
   const matches = new Set(rule.weekdays);
@@ -59,16 +89,27 @@ function weekdayOccurrences(
     const onSelectedDay = matches.has(weekdayOfYmd(cursor));
     const onOrAfterStart = cursor >= startYmd;
     const onOrBeforeUntil = !rule.until || cursor <= rule.until;
-    if (onSelectedDay && onOrAfterStart && onOrBeforeUntil) {
+    const shouldCheck = onSelectedDay && onOrAfterStart && onOrBeforeUntil;
+    if (shouldCheck) {
       const start = zonedLocalToUtc(cursor, hour, minute, rule.timeZone);
-      const inWindow = start >= from && start < to;
-      if (inWindow) {
-        occurrences.push(occurrence(rule.id, start, duration));
-      }
+      pushIfInWindow(occurrences, rule.id, start, duration, from, to);
     }
     cursor = addYmd(cursor, 1);
   }
   return occurrences;
+}
+
+function pushIfInWindow(
+  occurrences: ExpandedOccurrence[],
+  eventId: string,
+  start: Date,
+  duration: number,
+  from: Date,
+  to: Date,
+): void {
+  if (start >= from && start < to) {
+    occurrences.push(occurrence(eventId, start, duration));
+  }
 }
 
 function occurrence(eventId: string, start: Date, duration: number): ExpandedOccurrence {
@@ -79,8 +120,8 @@ function occurrence(eventId: string, start: Date, duration: number): ExpandedOcc
   };
 }
 
-function earlierYmd(left: string, right: string): string {
-  return left < right ? left : right;
+function laterYmd(left: string, right: string): string {
+  return left > right ? left : right;
 }
 
 function weekdayOfYmd(ymd: string): number {

@@ -1,7 +1,7 @@
 import type { Occurrence } from '@migenda/shared';
 
-import { bookedMinutes, completedOn, countOn, firstStartOn, shiftDay } from '../../dashboardDays';
-import { formatBookedTime } from '../../formatBookedTime';
+import { bookedMinutes, completedOn, countOn, firstStartOn, shiftDay } from '../../schedule/dashboardDays';
+import { formatBookedTime } from '../../schedule/formatBookedTime';
 import { DashboardDayStat } from './DashboardDayStat';
 
 type DashboardDayStatsProps = {

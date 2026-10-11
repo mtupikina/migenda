@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { AssigneeOption, EventType } from '@migenda/shared';
 
 import { fetchEvent } from '../../api/events';
-import { eventToFormValues } from '../../newEventForm';
+import { eventToFormValues } from '../../schedule/newEventForm';
 import { CreateEventTypeForm } from './CreateEventTypeForm';
 import { NewEventForm } from './NewEventForm';
 
@@ -16,6 +16,7 @@ type NewEventDialogProps = {
   eventId?: string | null;
   occurrenceStart?: string | null;
   onClose: () => void;
+  onSaved?: (warning?: string) => void;
 };
 
 export function NewEventDialog({
@@ -26,6 +27,7 @@ export function NewEventDialog({
   eventId = null,
   occurrenceStart = null,
   onClose,
+  onSaved,
 }: NewEventDialogProps) {
   const [creatingType, setCreatingType] = useState(false);
   const [typeId, setTypeId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function NewEventDialog({
   const showLoadError = editing && !showTypeForm && eventQuery.isError;
   const showEventForm = !showTypeForm && (!editing || formValues !== null);
   const formKey = editing
-    ? `${eventId}-${occurrenceStart ?? 'series'}-${typeId ?? formValues?.typeId ?? 'saved'}`
+    ? `${eventId}-${occurrenceStart ?? 'series'}-${saved?.start ?? 'loading'}-${saved?.end ?? 'loading'}-${typeId ?? formValues?.typeId ?? 'saved'}`
     : `${typeId ?? 'event'}-${initialRange?.start ?? 'now'}`;
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export function NewEventDialog({
       onClose={onClose}
       title={title}
       centered
+      size={560}
       radius={0}
       classNames={{ body: 'max-h-[70vh] overflow-y-auto' }}
     >
@@ -96,9 +99,13 @@ export function NewEventDialog({
           initialRange={initialRange}
           eventId={eventId}
           occurrenceStart={occurrenceStart}
+          repeating={Boolean(saved && saved.weekdays.length > 0)}
           values={formValues}
           onCreateType={() => setCreatingType(true)}
-          onCreated={onClose}
+          onCreated={(warning) => {
+            onSaved?.(warning);
+            onClose();
+          }}
           onCancel={onClose}
         />
       ) : null}

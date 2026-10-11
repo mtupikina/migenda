@@ -6,7 +6,7 @@ import type { Occurrence } from '@migenda/shared';
 import { completeEvent, duplicateEvent, ScheduleRequestError } from '../../api/events';
 
 export function occurrenceKey(occurrence: Occurrence): string {
-  return `${occurrence.eventId}-${occurrence.start}`;
+  return `${occurrence.eventId}-${occurrence.seriesStart}`;
 }
 
 export function useBookingActions(resetKey: string) {
@@ -15,7 +15,7 @@ export function useBookingActions(resetKey: string) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const complete = useMutation({
-    mutationFn: (occurrence: Occurrence) => completeEvent(occurrence.eventId, occurrence.start),
+    mutationFn: (occurrence: Occurrence) => completeEvent(occurrence.eventId, occurrence.seriesStart),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setToast('Marked complete');
@@ -26,7 +26,7 @@ export function useBookingActions(resetKey: string) {
     },
   });
   const duplicate = useMutation({
-    mutationFn: (occurrence: Occurrence) => duplicateEvent(occurrence.eventId, occurrence.start, occurrence.end),
+    mutationFn: (occurrence: Occurrence) => duplicateEvent(occurrence.eventId, occurrence.seriesStart, occurrence.end),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setToast(`Duplicated to ${format(new Date(result.start), 'EEEE, MMMM d')}`);
@@ -71,6 +71,7 @@ export function useBookingActions(resetKey: string) {
     duplicating: duplicate.isPending,
     select,
     clear,
+    notify: (message: string) => setToast(message),
     complete: (occurrence: Occurrence) => complete.mutate(occurrence),
     duplicate: (occurrence: Occurrence) => duplicate.mutate(occurrence),
   };

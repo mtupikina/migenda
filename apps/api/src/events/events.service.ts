@@ -7,8 +7,16 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import type { AssigneeOption, Dashboard, EventDetail, EventNote as EventNoteDto, EventType as EventTypeDto } from '@migenda/shared';
-import { userFullName } from '@migenda/shared';
+import {
+  rangeIsOpen,
+  userFullName,
+  type AssigneeOption,
+  type Dashboard,
+  type EventDetail,
+  type EventNote as EventNoteDto,
+  type EventType as EventTypeDto,
+  type Occurrence,
+} from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
 import { UserDocument } from '../auth/user.schema';
 import { CompleteEventDto } from './complete-event.dto';
@@ -22,8 +30,11 @@ import { EventNote, EventNoteDocument } from './event-note.schema';
 import { assertSchedule, assertTimeZone, uniqueWeekdays } from './event-rules';
 import { CalendarEvent, CalendarEventDocument } from './event.schema';
 import { EventType, EventTypeDocument } from './event-type.schema';
-import { expandEvent } from './expand-event';
+import { containsInstant, expandEvent, ruleFrom, ruleOf, type EventRule } from './expand-event';
+import { MoveEventDto } from './move-event.dto';
+import { collectOccurrences } from './place-occurrence';
 import { UpdateEventDto } from './update-event.dto';
+import { editScope, ruleBounds, seriesClock, type EventScope } from './update-event-scope';
 import { shiftYmd, zonedLocalToUtc, zonedParts, zonedYmd } from './zoned-time';
 
 @Injectable()
@@ -64,46 +75,7 @@ export class EventsService {
       .exec();
 
     const typeById = new Map(typeDocs.map((type) => [String(type._id), type]));
-    const exceptionByKey = new Map(
-      exceptionDocs.map((entry) => [exceptionKey(String(entry.eventId), entry.occurrenceStart), entry]),
-    );
-
-    const occurrences = rules.flatMap((rule) => {
-      const type = typeById.get(String(rule.typeId));
-      const expanded = expandEvent(
-        {
-          id: String(rule._id),
-          start: rule.start,
-          end: rule.end,
-          timeZone: rule.timeZone,
-          weekdays: rule.weekdays,
-          until: rule.until,
-        },
-        from,
-        to,
-      );
-      return expanded
-        .filter((item) => {
-          const exception = exceptionByKey.get(exceptionKey(item.eventId, item.start));
-          const inWindow = item.start >= from && item.start < to;
-          return inWindow && !exception?.deleted;
-        })
-        .map((item) => {
-          const exception = exceptionByKey.get(exceptionKey(item.eventId, item.start));
-          return {
-            eventId: item.eventId,
-            start: item.start.toISOString(),
-            end: item.end.toISOString(),
-            title: exception?.title || rule.title,
-            typeName: type?.name ?? '',
-            typeColor: type?.color ?? '',
-            completed: exception?.completed ?? false,
-            repeating: rule.weekdays.length > 0,
-          };
-        });
-    });
-
-    occurrences.sort((left, right) => left.start.localeCompare(right.start));
+    const occurrences = collectOccurrences(rules, exceptionDocs, typeById, from, to);
 
     return {
       occurrences,
@@ -142,53 +114,48 @@ export class EventsService {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
     const detail = toEventDetail(event);
-    const oneDay = event.weekdays.length > 0 ? this.occurrenceInstant(occurrenceStart) : null;
-    if (!oneDay) {
+    const instant = event.weekdays.length > 0 ? this.occurrenceInstant(occurrenceStart) : null;
+    if (!instant) {
       return detail;
     }
-    this.assertOccurrence(event, oneDay);
+    const oneDay = await this.resolveOccurrenceKey(event, instant);
     const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: oneDay }).exec();
-    if (!exception) {
-      return detail;
-    }
+    const clock = occurrenceClock(event, oneDay);
     return {
       ...detail,
-      title: exception.title || detail.title,
-      description: exception.description ?? detail.description,
+      title: exception?.title || detail.title,
+      description: exception?.description ?? detail.description,
+      start: clock.start.toISOString(),
+      end: clock.end.toISOString(),
     };
   }
 
-  async updateEvent(sid: string, eventId: string, dto: UpdateEventDto): Promise<{ id: string }> {
+  async updateEvent(sid: string, eventId: string, dto: UpdateEventDto): Promise<{ id: string; warning?: string }> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
     assertTimeZone(dto.timeZone);
     const start = new Date(dto.start);
     const end = new Date(dto.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('Enter a valid date');
+    }
     const weekdays = uniqueWeekdays(dto.weekdays);
-    assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
     this.assertAssignee(user, dto.assigneeId);
     await this.assertOwnedType(user, dto.typeId);
-    const oneDay = weekdays.length > 0 ? this.occurrenceInstant(dto.occurrenceStart) : null;
-    if (oneDay) {
-      this.assertOccurrence(event, oneDay);
+    const repeating = event.weekdays.length > 0;
+    const scope = editScope(repeating, dto.scope);
+    if (!scope) {
+      throw new BadRequestException('Choose which events to update');
     }
-    if (!oneDay) {
-      event.title = dto.title;
-      event.description = dto.description;
+    if (!repeating) {
+      return this.rewriteSeries(user, event, dto, start, end, weekdays);
     }
-    event.typeId = new Types.ObjectId(dto.typeId);
-    event.assigneeId = user._id;
-    event.start = start;
-    event.end = end;
-    event.timeZone = dto.timeZone;
-    event.weekdays = weekdays;
-    event.until = dto.until;
-    await event.save();
-    if (!oneDay) {
-      return { id: String(event._id) };
+    const instant = this.occurrenceInstant(dto.occurrenceStart);
+    if (!instant) {
+      throw new BadRequestException('Enter a valid date');
     }
-    await this.saveOccurrenceText(event, oneDay, dto.title, dto.description);
-    return { id: String(event._id) };
+    const key = await this.resolveOccurrenceKey(event, instant);
+    return this.updateRepeating(user, event, key, dto, start, end, weekdays, scope);
   }
 
   async listNotes(sid: string, eventId: string, occurrenceStart: string | undefined): Promise<EventNoteDto[]> {
@@ -216,11 +183,11 @@ export class EventsService {
   async deleteEvent(sid: string, eventId: string, dto: DeleteEventDto): Promise<void> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
-    const start = new Date(dto.occurrenceStart);
-    if (Number.isNaN(start.getTime())) {
+    const instant = this.occurrenceInstant(dto.occurrenceStart);
+    if (!instant) {
       throw new BadRequestException('Enter a valid date');
     }
-    this.assertOccurrence(event, start);
+    const start = await this.resolveOccurrenceKey(event, instant);
     const repeating = event.weekdays.length > 0;
     const removeSeries = !repeating || dto.scope === 'series';
     if (removeSeries) {
@@ -239,7 +206,11 @@ export class EventsService {
     const event = await this.ownedEvent(user, eventId);
     const start = new Date(dto.occurrenceStart);
     const end = new Date(dto.occurrenceEnd);
-    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: start }).exec();
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    const key = await this.resolveOccurrenceKey(event, start);
+    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: key }).exec();
     if (!(end > start)) {
       throw new BadRequestException('End must be after the start');
     }
@@ -270,17 +241,45 @@ export class EventsService {
   async completeEvent(sid: string, eventId: string, dto: CompleteEventDto): Promise<{ completed: true }> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
-    const start = new Date(dto.occurrenceStart);
-    const matches = this.occurrenceAt(event, start);
-    if (!matches) {
-      throw new NotFoundException('Choose a task');
+    const instant = this.occurrenceInstant(dto.occurrenceStart);
+    if (!instant) {
+      throw new BadRequestException('Enter a valid date');
     }
+    const start = await this.resolveOccurrenceKey(event, instant);
     await this.exceptions.updateOne(
       { eventId: event._id, occurrenceStart: start },
       { $set: { completed: true } },
       { upsert: true },
     );
     return { completed: true };
+  }
+
+  async moveEvent(sid: string, eventId: string, dto: MoveEventDto): Promise<{ id: string; start: string; end: string }> {
+    const user = await this.auth.resolveUserFromSession(sid);
+    const event = await this.ownedEvent(user, eventId);
+    const instant = this.occurrenceInstant(dto.occurrenceStart);
+    if (!instant) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    const key = await this.resolveOccurrenceKey(event, instant);
+    const newStart = new Date(dto.start);
+    if (Number.isNaN(newStart.getTime())) {
+      throw new BadRequestException('Enter a valid date');
+    }
+    const duration = event.end.getTime() - event.start.getTime();
+    const newEnd = new Date(newStart.getTime() + duration);
+    if (key.getTime() === newStart.getTime()) {
+      return { id: String(event._id), start: key.toISOString(), end: new Date(key.getTime() + duration).toISOString() };
+    }
+    await this.assertRangeOpen(user, event, key, newStart, newEnd);
+    const repeating = event.weekdays.length > 0;
+    let targetId = String(event._id);
+    if (!repeating) {
+      await this.moveOneTime(event, key, newStart, newEnd);
+    } else {
+      targetId = await this.detachMoved(user, event, key, newStart, newEnd);
+    }
+    return { id: targetId, start: newStart.toISOString(), end: newEnd.toISOString() };
   }
 
   async createType(sid: string, dto: CreateEventTypeDto): Promise<EventTypeDto> {
@@ -354,12 +353,389 @@ export class EventsService {
   ): Promise<{ event: CalendarEventDocument; start: Date }> {
     const user = await this.auth.resolveUserFromSession(sid);
     const event = await this.ownedEvent(user, eventId);
-    const start = this.occurrenceInstant(occurrenceStart);
-    if (!start) {
+    const instant = this.occurrenceInstant(occurrenceStart);
+    if (!instant) {
       throw new BadRequestException('Enter a valid date');
     }
-    this.assertOccurrence(event, start);
+    const start = await this.resolveOccurrenceKey(event, instant);
     return { event, start };
+  }
+
+  private async resolveOccurrenceKey(event: CalendarEventDocument, instant: Date): Promise<Date> {
+    if (this.occurrenceAt(event, instant)) {
+      return this.liveKey(event, instant);
+    }
+    throw new NotFoundException('Choose a task');
+  }
+
+  private async liveKey(event: CalendarEventDocument, instant: Date): Promise<Date> {
+    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: instant }).exec();
+    if (exception?.deleted) {
+      throw new NotFoundException('Choose a task');
+    }
+    return instant;
+  }
+
+  private async assertRangeOpen(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    key: Date,
+    start: Date,
+    end: Date,
+  ): Promise<void> {
+    const occurrences = await this.occurrencesTouching(user, start, end);
+    const open = rangeIsOpen(
+      occurrences,
+      { eventId: String(event._id), seriesStart: key.toISOString() },
+      start.toISOString(),
+      end.toISOString(),
+    );
+    if (!open) {
+      throw new BadRequestException('That time is already booked');
+    }
+  }
+
+  private async occurrencesTouching(user: UserDocument, start: Date, end: Date): Promise<Occurrence[]> {
+    const candidates = await this.events
+      .find({
+        assigneeId: user._id,
+        $or: [
+          { weekdays: { $size: 0 }, start: { $lt: end }, end: { $gt: start } },
+          { 'weekdays.0': { $exists: true }, start: { $lt: end } },
+        ],
+      })
+      .exec();
+    const pad = candidates.reduce((max, rule) => Math.max(max, rule.end.getTime() - rule.start.getTime()), 0);
+    const from = new Date(start.getTime() - pad);
+    const exceptionDocs = await this.exceptions
+      .find({
+        eventId: { $in: candidates.map((rule) => rule._id) },
+        occurrenceStart: { $gte: from, $lt: end },
+      })
+      .exec();
+    return collectOccurrences(candidates, exceptionDocs, new Map(), from, end);
+  }
+
+  private async moveOneTime(
+    event: CalendarEventDocument,
+    key: Date,
+    newStart: Date,
+    newEnd: Date,
+  ): Promise<void> {
+    event.start = newStart;
+    event.end = newEnd;
+    await event.save();
+    await this.eventNotes.updateMany({ eventId: event._id, occurrenceStart: key }, { $set: { occurrenceStart: newStart } });
+    await this.exceptions.updateOne({ eventId: event._id, occurrenceStart: key }, { $set: { occurrenceStart: newStart } });
+  }
+
+  private async detachMoved(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    key: Date,
+    start: Date,
+    end: Date,
+  ): Promise<string> {
+    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: key }).exec();
+    return this.detachStandalone(user, event, key, {
+      title: exception?.title || event.title,
+      description: exception?.description ?? event.description,
+      typeId: String(event.typeId),
+      assigneeId: String(event.assigneeId),
+      timeZone: event.timeZone,
+      start,
+      end,
+      keepTime: true,
+    });
+  }
+
+  private async updateRepeating(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    key: Date,
+    dto: UpdateEventDto,
+    start: Date,
+    end: Date,
+    weekdays: number[],
+    scope: EventScope,
+  ): Promise<{ id: string; warning?: string }> {
+    if (scope === 'one') {
+      const id = await this.updateOneOccurrence(user, event, key, dto, start, end);
+      return { id };
+    }
+    if (scope === 'following') {
+      return this.updateFollowing(user, event, key, dto, start, end, weekdays);
+    }
+    const clock = seriesClock(event.start, start, end, dto.timeZone);
+    return this.rewriteSeries(user, event, dto, clock.start, clock.end, weekdays);
+  }
+
+  private async updateOneOccurrence(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    key: Date,
+    dto: UpdateEventDto,
+    start: Date,
+    end: Date,
+  ): Promise<string> {
+    return this.detachStandalone(user, event, key, {
+      title: dto.title,
+      description: dto.description,
+      typeId: dto.typeId,
+      assigneeId: dto.assigneeId,
+      timeZone: dto.timeZone,
+      start,
+      end,
+    });
+  }
+
+  private async updateFollowing(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    key: Date,
+    dto: UpdateEventDto,
+    start: Date,
+    end: Date,
+    weekdays: number[],
+  ): Promise<{ id: string; warning?: string }> {
+    assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
+    const dayBefore = shiftYmd(zonedYmd(key, event.timeZone), -1);
+    const opensSeries = dayBefore < zonedYmd(event.start, event.timeZone);
+    if (opensSeries) {
+      return this.rewriteSeries(user, event, dto, start, end, weekdays);
+    }
+    const carriedExceptions = await this.exceptions.find({ eventId: event._id, occurrenceStart: { $gte: key } }).exec();
+    const carriedNotes = await this.eventNotes.find({ eventId: event._id, occurrenceStart: { $gte: key } }).exec();
+    event.until = earlierUntil(event.until, dayBefore);
+    await event.save();
+    const created = await this.insertSeries(event, dto, start, end, weekdays);
+    await this.carryOnto(created, carriedExceptions, carriedNotes);
+    await this.exceptions.deleteMany({ eventId: event._id, occurrenceStart: { $gte: key } }).exec();
+    await this.eventNotes.deleteMany({ eventId: event._id, occurrenceStart: { $gte: key } }).exec();
+
+    const rule = ruleFrom(String(created._id), start, end, dto.timeZone, weekdays, dto.until);
+    const warning = await this.omitConflictingOccurrences(
+      user,
+      created._id,
+      rule,
+      (item) => item.eventId === String(event._id) && item.seriesStart >= key.toISOString(),
+    );
+    return { id: String(created._id), warning };
+  }
+
+  private async detachStandalone(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    key: Date,
+    fields: StandaloneFields,
+  ): Promise<string> {
+    if (!(fields.end > fields.start)) {
+      throw new BadRequestException('End must be after the start');
+    }
+    const rule = ruleFrom('detached', fields.start, fields.end, fields.timeZone, [], null);
+    if (!fields.keepTime) {
+      await this.assertRuleOpen(
+        user,
+        rule,
+        (item) => item.eventId === String(event._id) && item.seriesStart === key.toISOString(),
+      );
+    }
+    const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: key }).exec();
+    const created = await this.events.create({
+      userId: event.userId,
+      assigneeId: new Types.ObjectId(fields.assigneeId),
+      typeId: new Types.ObjectId(fields.typeId),
+      title: fields.title,
+      description: fields.description,
+      start: fields.start,
+      end: fields.end,
+      timeZone: fields.timeZone,
+      weekdays: [],
+      until: null,
+    });
+    await this.eventNotes.updateMany(
+      { eventId: event._id, occurrenceStart: key },
+      { $set: { eventId: created._id, occurrenceStart: fields.start } },
+    );
+    if (exception?.completed) {
+      await this.exceptions.updateOne(
+        { eventId: created._id, occurrenceStart: fields.start },
+        { $set: { completed: true } },
+        { upsert: true },
+      );
+    }
+    await this.exceptions.updateOne(
+      { eventId: event._id, occurrenceStart: key },
+      {
+        $set: { deleted: true },
+        $unset: { title: 1, description: 1 },
+        $setOnInsert: { completed: false },
+      },
+      { upsert: true },
+    );
+    return String(created._id);
+  }
+
+  private async rewriteSeries(
+    user: UserDocument,
+    event: CalendarEventDocument,
+    dto: UpdateEventDto,
+    start: Date,
+    end: Date,
+    weekdays: number[],
+  ): Promise<{ id: string; warning?: string }> {
+    assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
+    const rule = ruleFrom(String(event._id), start, end, dto.timeZone, weekdays, dto.until);
+    let warning: string | undefined;
+    if (weekdays.length === 0) {
+      await this.assertRuleOpen(user, rule, (item) => item.eventId === String(event._id));
+    } else {
+      warning = await this.omitConflictingOccurrences(
+        user,
+        event._id,
+        rule,
+        (item) => item.eventId === String(event._id),
+      );
+    }
+    this.assignSeries(event, dto, start, end, weekdays);
+    await event.save();
+    await this.clearFieldOverrides(event);
+    return { id: String(event._id), warning };
+  }
+
+  private async omitConflictingOccurrences(
+    user: UserDocument,
+    targetEventId: Types.ObjectId,
+    rule: EventRule,
+    skip: (item: Occurrence) => boolean,
+  ): Promise<string | undefined> {
+    const bounds = ruleBounds(rule.start, rule.end, rule.weekdays, rule.until, rule.timeZone);
+    const expanded = expandEvent(rule, bounds.from, bounds.to);
+    const existing = await this.occurrencesTouching(user, bounds.from, bounds.to);
+    const others = existing.filter((item) => !skip(item));
+    const priorExceptions = await this.exceptions.find({ eventId: targetEventId }).exec();
+    const deletedStarts = new Set(
+      priorExceptions.filter((entry) => entry.deleted).map((entry) => entry.occurrenceStart.toISOString()),
+    );
+    let conflictCount = 0;
+    for (const item of expanded) {
+      const alreadyDeleted = deletedStarts.has(item.start.toISOString());
+      if (alreadyDeleted) {
+        continue;
+      }
+      const open = rangeIsOpen(others, { eventId: '', seriesStart: '' }, item.start.toISOString(), item.end.toISOString());
+      if (!open) {
+        conflictCount += 1;
+        await this.exceptions.updateOne(
+          { eventId: targetEventId, occurrenceStart: item.start },
+          { $set: { deleted: true }, $setOnInsert: { completed: false } },
+          { upsert: true },
+        );
+      }
+    }
+    if (expanded.length > 0 && conflictCount === expanded.length) {
+      throw new BadRequestException('That time is already booked');
+    }
+    if (conflictCount > 0) {
+      return 'Some occurrences were not updated because of a conflict';
+    }
+    return undefined;
+  }
+
+  private assignSeries(
+    event: CalendarEventDocument,
+    dto: UpdateEventDto,
+    start: Date,
+    end: Date,
+    weekdays: number[],
+  ): void {
+    event.title = dto.title;
+    event.description = dto.description;
+    event.typeId = new Types.ObjectId(dto.typeId);
+    event.assigneeId = new Types.ObjectId(dto.assigneeId);
+    event.start = start;
+    event.end = end;
+    event.timeZone = dto.timeZone;
+    event.weekdays = weekdays;
+    event.until = dto.until;
+  }
+
+  private async insertSeries(
+    event: CalendarEventDocument,
+    dto: UpdateEventDto,
+    start: Date,
+    end: Date,
+    weekdays: number[],
+  ): Promise<CalendarEventDocument> {
+    return this.events.create({
+      userId: event.userId,
+      assigneeId: new Types.ObjectId(dto.assigneeId),
+      typeId: new Types.ObjectId(dto.typeId),
+      title: dto.title,
+      description: dto.description,
+      start,
+      end,
+      timeZone: dto.timeZone,
+      weekdays,
+      until: dto.until,
+    });
+  }
+
+  private async carryOnto(
+    created: CalendarEventDocument,
+    exceptions: EventExceptionDocument[],
+    notes: EventNoteDocument[],
+  ): Promise<void> {
+    const byDay = this.daysOf(created);
+    for (const note of notes) {
+      const next = byDay.get(zonedYmd(note.occurrenceStart, created.timeZone));
+      if (!next) {
+        continue;
+      }
+      note.eventId = created._id;
+      note.occurrenceStart = next;
+      await note.save();
+    }
+    for (const entry of exceptions) {
+      const kept = entry.completed && !entry.deleted;
+      const next = kept ? byDay.get(zonedYmd(entry.occurrenceStart, created.timeZone)) : undefined;
+      if (!next) {
+        continue;
+      }
+      await this.exceptions.updateOne(
+        { eventId: created._id, occurrenceStart: next },
+        { $set: { completed: true } },
+        { upsert: true },
+      );
+    }
+  }
+
+  private daysOf(event: CalendarEventDocument): Map<string, Date> {
+    const bounds = ruleBounds(event.start, event.end, event.weekdays, event.until, event.timeZone);
+    const expanded = expandEvent(ruleOf(event), bounds.from, bounds.to);
+    return new Map(expanded.map((item) => [zonedYmd(item.start, event.timeZone), item.start]));
+  }
+
+  private async assertRuleOpen(user: UserDocument, rule: EventRule, skip: (item: Occurrence) => boolean): Promise<void> {
+    const bounds = ruleBounds(rule.start, rule.end, rule.weekdays, rule.until, rule.timeZone);
+    const expanded = expandEvent(rule, bounds.from, bounds.to);
+    const existing = await this.occurrencesTouching(user, bounds.from, bounds.to);
+    const others = existing.filter((item) => !skip(item));
+    const blocked = expanded.some(
+      (item) => !rangeIsOpen(others, { eventId: '', seriesStart: '' }, item.start.toISOString(), item.end.toISOString()),
+    );
+    if (blocked) {
+      throw new BadRequestException('That time is already booked');
+    }
+  }
+
+  private async clearFieldOverrides(event: CalendarEventDocument): Promise<void> {
+    await this.exceptions
+      .updateMany(
+        { eventId: event._id },
+        { $unset: { title: 1, description: 1 } },
+      )
+      .exec();
   }
 
   private occurrenceInstant(value: string | undefined): Date | null {
@@ -373,67 +749,8 @@ export class EventsService {
     return start;
   }
 
-  private assertOccurrence(event: CalendarEventDocument, start: Date): void {
-    if (this.occurrenceAt(event, start)) {
-      return;
-    }
-    throw new NotFoundException('Choose a task');
-  }
-
-  private async saveOccurrenceText(
-    event: CalendarEventDocument,
-    occurrenceStart: Date,
-    title: string,
-    description: string,
-  ): Promise<void> {
-    const titleChanged = title !== event.title;
-    const descriptionChanged = description !== event.description;
-    const set: { title?: string; description?: string } = {};
-    const unset: { title?: 1; description?: 1 } = {};
-    if (titleChanged) {
-      set.title = title;
-    }
-    if (!titleChanged) {
-      unset.title = 1;
-    }
-    if (descriptionChanged) {
-      set.description = description;
-    }
-    if (!descriptionChanged) {
-      unset.description = 1;
-    }
-    const changed = titleChanged || descriptionChanged;
-    if (!changed) {
-      await this.exceptions.updateOne({ eventId: event._id, occurrenceStart }, { $unset: { title: 1, description: 1 } });
-      return;
-    }
-    const update: {
-      $set?: { title?: string; description?: string };
-      $unset?: { title?: 1; description?: 1 };
-      $setOnInsert: { completed: false };
-    } = { $setOnInsert: { completed: false } };
-    if (titleChanged || descriptionChanged) {
-      update.$set = set;
-    }
-    if (!titleChanged || !descriptionChanged) {
-      update.$unset = unset;
-    }
-    await this.exceptions.updateOne({ eventId: event._id, occurrenceStart }, update, { upsert: true });
-  }
-
   private occurrenceAt(event: CalendarEventDocument, start: Date): boolean {
-    return expandEvent(
-      {
-        id: String(event._id),
-        start: event.start,
-        end: event.end,
-        timeZone: event.timeZone,
-        weekdays: event.weekdays,
-        until: event.until,
-      },
-      new Date(start.getTime() - 1),
-      new Date(start.getTime() + 1),
-    ).some((item) => item.start.getTime() === start.getTime());
+    return containsInstant(ruleOf(event), start);
   }
 
   private async assertOwnedType(user: UserDocument, typeId: string): Promise<void> {
@@ -471,6 +788,11 @@ function earlierUntil(current: string | null, dayBefore: string): string {
   return dayBefore;
 }
 
+function occurrenceClock(event: CalendarEventDocument, key: Date): { start: Date; end: Date } {
+  const duration = event.end.getTime() - event.start.getTime();
+  return { start: key, end: new Date(key.getTime() + duration) };
+}
+
 function toEventDetail(event: CalendarEventDocument): EventDetail {
   return {
     id: String(event._id),
@@ -501,6 +823,13 @@ function toAssignee(user: UserDocument): AssigneeOption {
   };
 }
 
-function exceptionKey(eventId: string, start: Date): string {
-  return `${eventId}:${start.toISOString()}`;
-}
+type StandaloneFields = {
+  title: string;
+  description: string;
+  typeId: string;
+  assigneeId: string;
+  timeZone: string;
+  start: Date;
+  end: Date;
+  keepTime?: boolean;
+};

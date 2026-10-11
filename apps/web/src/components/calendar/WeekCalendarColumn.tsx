@@ -1,9 +1,11 @@
 import type { Occurrence } from '@migenda/shared';
 
-import { dayKey, occurrencesOn } from '../../dashboardDays';
+import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
+import { CalendarHourDropMarker } from './CalendarHourDropMarker';
 import { WeekCalendarBlock } from './WeekCalendarBlock';
 import { WeekCalendarSlot } from './WeekCalendarSlot';
 import { DAY_CALENDAR_HOURS } from './dayCalendarLayout';
+import { WEEK_CALENDAR_HOUR_PX } from './weekCalendarLayout';
 import { occurrenceKey, useBookingSelection } from './useBookingActions';
 
 type WeekCalendarColumnProps = {
@@ -22,7 +24,8 @@ export function WeekCalendarColumn({
   onClearSlot,
 }: WeekCalendarColumnProps) {
   const booking = useBookingSelection();
-  const events = occurrencesOn(occurrences, dayKey(date));
+  const viewedDay = dayKey(date);
+  const events = occurrencesOn(occurrences, viewedDay);
   const weekend = date.getDay() === 0 || date.getDay() === 6;
   const columnClass = weekend
     ? 'relative border-l border-[color-mix(in_srgb,#201e1d_14%,transparent)] bg-[color-mix(in_srgb,#201e1d_4%,transparent)]'
@@ -39,6 +42,7 @@ export function WeekCalendarColumn({
           onSelect={onSelectHour}
         />
       ))}
+      <CalendarHourDropMarker day={viewedDay} hourPx={WEEK_CALENDAR_HOUR_PX} insetClass="right-1 left-1" />
       {events.map((occurrence) => {
         const key = occurrenceKey(occurrence);
         const selected = key === booking.selectedKey;

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Anchor, Button } from '@mantine/core';
 
-import type { LandingVisitor } from '../landingVisitor';
+import type { LandingVisitor } from './landing/landingVisitor';
 import { Nav } from './Nav';
 
 export function MarketingNav({ visitor }: { visitor: LandingVisitor }) {

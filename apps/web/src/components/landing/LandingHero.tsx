@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, Grid, Group, Image, Text, Title } from '@mantine/core';
 
-import type { LandingVisitor } from '../../landingVisitor';
+import type { LandingVisitor } from './landingVisitor';
 import { rule } from '../../theme';
 
 export function LandingHero({ visitor }: { visitor: LandingVisitor }) {

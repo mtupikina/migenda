@@ -14,6 +14,7 @@ export {
   eventNoteSchema,
   eventTypeSchema,
   occurrenceSchema,
+  rangeIsOpen,
   type AssigneeOption,
   type CreateEventInput,
   type CreateEventTypeInput,

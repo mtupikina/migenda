@@ -1,12 +1,13 @@
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { Button, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { AssigneeOption, CreateEventInput, EventType } from '@migenda/shared';
+import type { AssigneeOption, CreateEventInput, DeleteEventScope, EventType } from '@migenda/shared';
 
 import { createEvent, ScheduleRequestError, updateEvent } from '../../api/events';
 import { dashboardFieldClassNames } from '../../classNames/shared';
-import { defaultEventRange, newEventFormSchema, type NewEventFormValues } from '../../newEventForm';
+import { defaultEventRange, newEventFormSchema, type NewEventFormValues } from '../../schedule/newEventForm';
+import { EditEventSave } from './EditEventSave';
 import { EventDateField } from './EventDateField';
 import { EventDateTimeField } from './EventDateTimeField';
 import { WeekdayField } from './WeekdayField';
@@ -18,9 +19,10 @@ type NewEventFormProps = {
   initialRange?: { start: string; end: string } | null;
   eventId?: string | null;
   occurrenceStart?: string | null;
+  repeating?: boolean;
   values?: NewEventFormValues | null;
   onCreateType: () => void;
-  onCreated: () => void;
+  onCreated: (warning?: string) => void;
   onCancel: () => void;
 };
 
@@ -31,6 +33,7 @@ export function NewEventForm({
   initialRange,
   eventId = null,
   occurrenceStart = null,
+  repeating = false,
   values = null,
   onCreateType,
   onCreated,
@@ -52,18 +55,16 @@ export function NewEventForm({
         description: '',
       };
   const mutation = useMutation({
-    mutationFn: (input: CreateEventInput) => {
+    mutationFn: (input: CreateEventInput & { scope: DeleteEventScope | null }) => {
       if (eventId) {
-        return updateEvent(eventId, input, occurrenceStart);
+        return updateEvent(eventId, input, occurrenceStart, input.scope);
       }
       return createEvent(input);
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      if (eventId) {
-        await queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-      }
-      onCreated();
+      await queryClient.invalidateQueries({ queryKey: ['event'] });
+      onCreated(data?.warning);
     },
   });
   const {
@@ -77,23 +78,34 @@ export function NewEventForm({
     defaultValues: seeded,
   });
   const description = watch('description');
+  const pending = mutation.isPending ? (mutation.variables?.scope ?? 'create') : null;
+  const save = (scope: DeleteEventScope | null) => {
+    void handleSubmit((formValues) => {
+      mutation.mutate({
+        title: formValues.title,
+        typeId: formValues.typeId,
+        assigneeId: formValues.assigneeId,
+        description: formValues.description,
+        start: new Date(formValues.start).toISOString(),
+        end: new Date(formValues.end).toISOString(),
+        weekdays: formValues.weekdays,
+        until: formValues.until || null,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        scope,
+      });
+    })();
+  };
 
   return (
     <form
       noValidate
-      onSubmit={handleSubmit((values) =>
-        mutation.mutate({
-          title: values.title,
-          typeId: values.typeId,
-          assigneeId: values.assigneeId,
-          description: values.description,
-          start: new Date(values.start).toISOString(),
-          end: new Date(values.end).toISOString(),
-          weekdays: values.weekdays,
-          until: values.until || null,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        }),
-      )}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (repeating) {
+          return;
+        }
+        save(editing ? 'series' : null);
+      }}
     >
       <Stack gap={16}>
         <TextInput
@@ -196,14 +208,13 @@ export function NewEventForm({
             {mutation.error.message}
           </Text>
         ) : null}
-        <Group justify="flex-end" gap={8}>
-          <Button type="button" variant="default" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" loading={mutation.isPending}>
-            {editing ? 'Save changes' : 'Create event'}
-          </Button>
-        </Group>
+        <EditEventSave
+          editing={editing}
+          repeating={repeating}
+          pending={pending}
+          onCancel={onCancel}
+          onSave={save}
+        />
       </Stack>
     </form>
   );

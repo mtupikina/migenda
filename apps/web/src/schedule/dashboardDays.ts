@@ -1,5 +1,6 @@
-import type { Occurrence } from '@migenda/shared';
 import { addDays, differenceInMinutes, format, startOfDay } from 'date-fns';
+
+import type { Occurrence } from '@migenda/shared';
 
 export function dayKey(date: Date): string {
   return format(date, 'yyyy-MM-dd');

@@ -6,7 +6,7 @@ import { EVENT_DESCRIPTION_MAX } from '@migenda/shared';
 
 import { createNote, ScheduleRequestError } from '../../api/events';
 import { dashboardFieldClassNames } from '../../classNames/shared';
-import { noteFormSchema, type NoteFormValues } from '../../noteForm';
+import { noteFormSchema, type NoteFormValues } from '../../schedule/noteForm';
 
 type NoteComposeFormProps = {
   eventId: string;

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Button, Group, Loader, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 
 import { fetchDashboard } from '../api/events';
-import { countOn, dayKey } from '../dashboardDays';
+import { countOn, dayKey } from '../schedule/dashboardDays';
 import { AppNav } from '../components/AppNav';
+import { BookingNotice } from '../components/calendar/BookingNotice';
 import { DashboardChecklist } from '../components/dashboard/DashboardChecklist';
 import { DashboardDayStats } from '../components/dashboard/DashboardDayStats';
 import { DashboardEmptyChecklist } from '../components/dashboard/DashboardEmptyChecklist';
@@ -16,12 +17,21 @@ import { useRequireAuth } from '../hooks/useRequireAuth';
 export function DashboardPage() {
   const { data: user, isLoading } = useRequireAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const now = new Date();
   const dashboard = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => fetchDashboard(),
     enabled: Boolean(user),
   });
+
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+    const id = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [notice]);
 
   const showLoader = isLoading || !user || dashboard.isLoading;
   const schedule = dashboard.data;
@@ -56,7 +66,13 @@ export function DashboardPage() {
               types={schedule.types}
               assignees={schedule.assignees}
               onClose={() => setDialogOpen(false)}
+              onSaved={(warning) => {
+                if (warning) {
+                  setNotice(warning);
+                }
+              }}
             />
+            <BookingNotice message={notice} />
           </>
         ) : null}
       </Box>
