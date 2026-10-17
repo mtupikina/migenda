@@ -105,8 +105,16 @@ export type EventDetail = z.infer<typeof eventDetailSchema>;
 
 export const TIME_BLOCK_REASON_MAX = 1000;
 
+/** Whose events the schedule shows: the signed-in user's own (the default). */
+export const SCHEDULE_VIEW_ME = 'me';
+
+/** Whose events the schedule shows: everyone in the active team. */
+export const SCHEDULE_VIEW_ALL = 'all';
+
 export const occurrenceSchema = z.object({
   eventId: z.string(),
+  /** The team member this event is assigned to. For blocked time, the person who blocked it. */
+  assigneeId: z.string(),
   start: z.string(),
   end: z.string(),
   seriesStart: z.string(),

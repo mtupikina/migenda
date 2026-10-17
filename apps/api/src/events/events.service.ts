@@ -8,6 +8,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import {
+  SCHEDULE_VIEW_ALL,
+  SCHEDULE_VIEW_ME,
   conflictingOccurrences,
   rangeIsOpen,
   userFullName,
@@ -57,20 +59,28 @@ export class EventsService {
     @InjectModel(TimeBlock.name) private readonly timeBlocks: Model<TimeBlockDocument>,
   ) {}
 
-  async dashboard(sid: string, fromIso: string, toIso: string): Promise<Dashboard> {
+  /**
+   * The schedule of the active team. `assignee` picks whose events to show: the signed-in user's
+   * (default), everyone's, or one teammate's.
+   */
+  async dashboard(sid: string, fromIso: string, toIso: string, assignee?: string): Promise<Dashboard> {
     const { user, teamId } = await this.auth.resolveTeamScope(sid);
     const from = new Date(fromIso);
     const to = new Date(toIso);
     if (!(from < to)) {
       throw new BadRequestException('The end of the range must be after the start');
     }
+    const viewed = await this.viewedAssignee(teamId, user, assignee);
+    const eventsOf = viewed ? { assigneeId: viewed } : {};
+    const showsOwnBlocks = viewed === null || viewed.equals(user._id);
 
     const [rules, typeDocs, blockDocs, assignees] = await Promise.all([
-      this.events
-        .find({ teamId, assigneeId: user._id, ...startsInWindow(from, to) })
-        .exec(),
+      this.events.find({ teamId, ...eventsOf, ...startsInWindow(from, to) }).exec(),
       this.typesOf(teamId),
-      this.timeBlocks.find({ userId: user._id, start: { $lt: to }, end: { $gt: from } }).exec(),
+      // Blocked time is personal: only the signed-in user's own is shown, never a teammate's.
+      showsOwnBlocks
+        ? this.timeBlocks.find({ userId: user._id, start: { $lt: to }, end: { $gt: from } }).exec()
+        : Promise.resolve([]),
       this.assigneeOptions(teamId),
     ]);
     const exceptionDocs = await this.exceptions
@@ -90,7 +100,11 @@ export class EventsService {
     };
   }
 
-  async createEvent(sid: string, dto: CreateEventDto): Promise<{ id: string }> {
+  /**
+   * A person can only be in one place at a time. A one-time event over a booked slot is refused.
+   * A repeating event skips the days that clash, and is refused only if every day does.
+   */
+  async createEvent(sid: string, dto: CreateEventDto): Promise<{ id: string; warning?: string }> {
     const { user, teamId } = await this.auth.resolveTeamScope(sid);
     assertTimeZone(dto.timeZone);
     const start = new Date(dto.start);
@@ -99,6 +113,12 @@ export class EventsService {
     assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
     await this.assertAssignee(teamId, dto.assigneeId);
     await this.assertTeamType(teamId, dto.typeId);
+    const booking: Booking = { teamId, assigneeId: new Types.ObjectId(dto.assigneeId) };
+    const rule = ruleFrom('new', start, end, dto.timeZone, weekdays, dto.until);
+    const repeating = weekdays.length > 0;
+    if (!repeating) {
+      await this.assertRuleOpen(booking, rule, () => false);
+    }
 
     const created = await this.events.create({
       teamId,
@@ -113,8 +133,32 @@ export class EventsService {
       weekdays,
       until: dto.until,
     });
+    if (!repeating) {
+      return { id: String(created._id) };
+    }
 
-    return { id: String(created._id) };
+    const warning = await this.skipClashesOrDiscard(booking, created, rule);
+    return { id: String(created._id), warning };
+  }
+
+  /** Marks the clashing days of a new repeating event as removed. If every day clashes, the event is deleted. */
+  private async skipClashesOrDiscard(
+    booking: Booking,
+    created: CalendarEventDocument,
+    rule: EventRule,
+  ): Promise<string | undefined> {
+    try {
+      return await this.omitConflictingOccurrences(
+        booking,
+        created._id,
+        rule,
+        (item) => item.eventId === String(created._id),
+      );
+    } catch (error) {
+      await this.exceptions.deleteMany({ eventId: created._id }).exec();
+      await this.events.deleteOne({ _id: created._id }).exec();
+      throw error;
+    }
   }
 
   async getEvent(sid: string, eventId: string, occurrenceStart?: string): Promise<EventDetail> {
@@ -369,6 +413,22 @@ export class EventsService {
   private async assigneeOptions(teamId: Types.ObjectId): Promise<AssigneeOption[]> {
     const members = await this.teams.memberUsers(teamId);
     return members.map(toAssignee);
+  }
+
+  /** Whose events the schedule shows. `null` means everyone in the team. */
+  private async viewedAssignee(
+    teamId: Types.ObjectId,
+    user: UserDocument,
+    assignee: string | undefined,
+  ): Promise<Types.ObjectId | null> {
+    if (assignee === SCHEDULE_VIEW_ALL) {
+      return null;
+    }
+    if (assignee === undefined || assignee === SCHEDULE_VIEW_ME) {
+      return user._id;
+    }
+    await this.assertAssignee(teamId, assignee);
+    return new Types.ObjectId(assignee);
   }
 
   private async assertAssignee(teamId: Types.ObjectId, assigneeId: string): Promise<void> {
@@ -708,7 +768,7 @@ export class EventsService {
       throw new BadRequestException('That time is already booked');
     }
     if (conflictCount > 0) {
-      return 'Some occurrences were not updated because of a conflict';
+      return 'Some days were skipped because that time is already booked';
     }
     return undefined;
   }

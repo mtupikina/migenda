@@ -9,7 +9,7 @@ type MoveInput = {
   end: string;
 };
 
-type Occupied = Pick<Occurrence, 'eventId' | 'seriesStart' | 'start' | 'end'>;
+type Occupied = Pick<Occurrence, 'eventId' | 'seriesStart' | 'start' | 'end' | 'assigneeId'>;
 
 export type DropPreview = {
   overId: string;
@@ -50,7 +50,9 @@ export function movedRange(occurrence: Occurrence, overId: string): { start: str
 
 export function openMove(occurrences: Occupied[], occurrence: Occurrence, overId: string): { start: string; end: string } | null {
   const next = movedRange(occurrence, overId);
-  const open = next !== null && rangeIsOpen(occurrences, occurrence, next.start, next.end);
+  // Two people can be busy at the same time. Only the mover's own events can be in the way.
+  const theirs = occurrences.filter((item) => item.assigneeId === occurrence.assigneeId);
+  const open = next !== null && rangeIsOpen(theirs, occurrence, next.start, next.end);
   if (!next || !open) {
     return null;
   }

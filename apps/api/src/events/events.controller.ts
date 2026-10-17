@@ -25,7 +25,7 @@ export class EventsController {
 
   @Get('dashboard')
   dashboard(@Req() req: Request, @Query() query: DashboardQueryDto) {
-    return this.events.dashboard(sessionId(req), query.from, query.to);
+    return this.events.dashboard(sessionId(req), query.from, query.to, query.assignee);
   }
 
   @Get('search')

@@ -1,6 +1,8 @@
 import { format } from 'date-fns';
 import type { Occurrence } from '@migenda/shared';
 
+import { useScheduleViewing } from '../../hooks/useScheduleViewing';
+import { withAssignee } from '../../schedule/assigneeLabeler';
 import { originalSlotLabel } from '../../schedule/calendarDrag';
 import { formatEventLine } from '../../schedule/formatEventLine';
 import { textOnTypeColor } from '../../schedule/textOnTypeColor';
@@ -18,7 +20,11 @@ type MonthCalendarChipProps = {
 export function MonthCalendarChip({ occurrence, selected, onSelect }: MonthCalendarChipProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useBookingDrag(occurrence);
   const drag = useCalendarDrag();
-  const line = formatEventLine(occurrence.title, occurrence.typeName, occurrence.start);
+  const { assigneeLabel } = useScheduleViewing();
+  const line = withAssignee(
+    assigneeLabel(occurrence),
+    formatEventLine(occurrence.title, occurrence.typeName, occurrence.start),
+  );
   const textOnColor = textOnTypeColor(occurrence.typeColor);
   const doneTitle = occurrence.completed ? 'line-through' : '';
   const picked = selected ? 'outline outline-2 outline-white' : '';

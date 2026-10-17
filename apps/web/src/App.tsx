@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 
+import { ScheduleViewingLayout } from './components/ScheduleViewingLayout';
 import { CalendarPage } from './pages/CalendarPage';
 import { CreateAccountPage } from './pages/CreateAccountPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -24,10 +25,12 @@ export function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/reset-password/confirm" element={<ResetPasswordConfirmPage />} />
       <Route path="/logout" element={<LogoutPage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/calendar/day/:date" element={<CalendarPage view="day" />} />
-      <Route path="/calendar/week/:date" element={<CalendarPage view="week" />} />
-      <Route path="/calendar/month/:date" element={<CalendarPage view="month" />} />
+      <Route element={<ScheduleViewingLayout />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/calendar/day/:date" element={<CalendarPage view="day" />} />
+        <Route path="/calendar/week/:date" element={<CalendarPage view="week" />} />
+        <Route path="/calendar/month/:date" element={<CalendarPage view="month" />} />
+      </Route>
       <Route path="/search" element={<SearchPage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/reports/generated" element={<GeneratedReportPage />} />

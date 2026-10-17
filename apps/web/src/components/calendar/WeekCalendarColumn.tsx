@@ -1,6 +1,7 @@
 import type { Occurrence } from '@migenda/shared';
 
 import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
+import { laneOf, overlapLanes } from '../../schedule/overlapLanes';
 import { CalendarHourDropMarker } from './CalendarHourDropMarker';
 import { WeekCalendarBlock } from './WeekCalendarBlock';
 import { WeekCalendarSlot } from './WeekCalendarSlot';
@@ -26,6 +27,7 @@ export function WeekCalendarColumn({
   const booking = useBookingSelection();
   const viewedDay = dayKey(date);
   const events = occurrencesOn(occurrences, viewedDay);
+  const lanes = overlapLanes(events);
   const weekend = date.getDay() === 0 || date.getDay() === 6;
   const columnClass = weekend
     ? 'relative border-l border-[color-mix(in_srgb,#201e1d_14%,transparent)] bg-[color-mix(in_srgb,#201e1d_4%,transparent)]'
@@ -50,6 +52,7 @@ export function WeekCalendarColumn({
           <WeekCalendarBlock
             key={key}
             occurrence={occurrence}
+            lane={laneOf(lanes, occurrence)}
             selected={selected}
             onSelect={(anchor) => {
               onClearSlot();

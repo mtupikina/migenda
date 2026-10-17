@@ -41,6 +41,7 @@ function pushBlockIfOverlaps(placed: Occurrence[], block: TimeBlockDocument, fro
 function blockToOccurrence(block: TimeBlockDocument): Occurrence {
   return {
     eventId: String(block._id),
+    assigneeId: String(block.userId),
     start: block.start.toISOString(),
     end: block.end.toISOString(),
     seriesStart: block.start.toISOString(),
@@ -80,6 +81,7 @@ function pushPlaced(
   const type = typeById.get(String(rule.typeId));
   placed.push({
     eventId: String(rule._id),
+    assigneeId: String(rule.assigneeId),
     start: seriesStart.toISOString(),
     end: seriesEnd.toISOString(),
     seriesStart: seriesStart.toISOString(),

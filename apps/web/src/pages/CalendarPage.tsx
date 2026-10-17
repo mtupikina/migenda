@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Loader, Text } from '@mantine/core';
-import type { Occurrence } from '@migenda/shared';
+import { SCHEDULE_VIEW_ALL, SCHEDULE_VIEW_ME, type Occurrence } from '@migenda/shared';
 
 import { calendarPath, calendarRange, parseCalendarDate, type CalendarView } from '../schedule/calendarPeriod';
 import { AppNav } from '../components/AppNav';
@@ -18,8 +18,10 @@ import { useCalendarSearchFocus } from '../components/calendar/useCalendarSearch
 import { occurrenceKey } from '../components/calendar/useBookingActions';
 import { WeekCalendar } from '../components/calendar/WeekCalendar';
 import { NewEventDialog } from '../components/dashboard/NewEventDialog';
+import { ScheduleViewingSelect } from '../components/ScheduleViewingSelect';
 import { useDashboard } from '../hooks/useDashboard';
 import { useRequireAuth } from '../hooks/useRequireAuth';
+import { useScheduleViewing } from '../hooks/useScheduleViewing';
 import { dayKey } from '../schedule/dashboardDays';
 import { slotEventRange } from '../schedule/newEventForm';
 import { DAY_CALENDAR_OPEN_HOUR } from '../components/calendar/dayCalendarLayout';
@@ -43,7 +45,9 @@ export function CalendarPage({ view }: CalendarPageProps) {
   const [blockingTime, setBlockingTime] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const range = date ? calendarRange(view, date) : null;
-  const dashboard = useDashboard(range, Boolean(user));
+  const { viewing } = useScheduleViewing();
+  const dashboard = useDashboard(range, Boolean(user), viewing);
+  const viewingTeammate = viewing !== SCHEDULE_VIEW_ME && viewing !== SCHEDULE_VIEW_ALL;
 
   useEffect(() => {
     if (date) {
@@ -53,6 +57,8 @@ export function CalendarPage({ view }: CalendarPageProps) {
   }, [date, navigate, view]);
 
   const schedule = dashboard.data;
+  // Blocked time is personal, so it only ever considers the signed-in user's own events.
+  const ownOccurrences = schedule?.occurrences.filter((item) => item.assigneeId === user?.id) ?? [];
   useCalendarSearchFocus(schedule?.occurrences, (occurrence) => {
     setFocusKey(occurrenceKey(occurrence));
   });
@@ -103,8 +109,10 @@ export function CalendarPage({ view }: CalendarPageProps) {
             date={date}
             newEventDisabled={!schedule}
             onNewEvent={openCreate}
-            onBlockTime={() => setBlockingTime(true)}
-          />
+            onBlockTime={viewingTeammate ? undefined : () => setBlockingTime(true)}
+          >
+            <ScheduleViewingSelect />
+          </CalendarToolbar>
         ) : null}
         {dashboard.isError ? <Text mt={16}>Could not load your schedule.</Text> : null}
         {date && schedule ? (
@@ -169,7 +177,7 @@ export function CalendarPage({ view }: CalendarPageProps) {
               opened={blockingTime}
               view={view}
               date={date}
-              occurrences={schedule.occurrences}
+              occurrences={ownOccurrences}
               onClose={() => setBlockingTime(false)}
               onReschedule={(eventId, occurrenceStart) => {
                 setBlockingTime(false);

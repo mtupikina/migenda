@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, Button, Group, Loader, Text } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { fetchDashboard } from '../api/events';
 import { countOn, dayKey } from '../schedule/dashboardDays';
@@ -12,17 +12,21 @@ import { DashboardEmptyChecklist } from '../components/dashboard/DashboardEmptyC
 import { DashboardGreeting } from '../components/dashboard/DashboardGreeting';
 import { DashboardMiniCalendar } from '../components/dashboard/DashboardMiniCalendar';
 import { NewEventDialog } from '../components/dashboard/NewEventDialog';
+import { ScheduleViewingSelect } from '../components/ScheduleViewingSelect';
 import { useRequireAuth } from '../hooks/useRequireAuth';
+import { useScheduleViewing } from '../hooks/useScheduleViewing';
 
 export function DashboardPage() {
   const { data: user, isLoading } = useRequireAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const now = new Date();
+  const { viewing } = useScheduleViewing();
   const dashboard = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => fetchDashboard(),
+    queryKey: ['dashboard', 'today', viewing],
+    queryFn: () => fetchDashboard(undefined, viewing),
     enabled: Boolean(user),
+    placeholderData: keepPreviousData,
   });
 
   useEffect(() => {
@@ -46,7 +50,10 @@ export function DashboardPage() {
           <>
             <Group justify="space-between" align="flex-start" wrap="wrap" mb={32} gap={16}>
               <DashboardGreeting firstName={user.firstName} />
-              <Button onClick={() => setDialogOpen(true)}>New event</Button>
+              <Group gap={12}>
+                <ScheduleViewingSelect />
+                <Button onClick={() => setDialogOpen(true)}>New event</Button>
+              </Group>
             </Group>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <DashboardDayStats occurrences={schedule.occurrences} now={now} />

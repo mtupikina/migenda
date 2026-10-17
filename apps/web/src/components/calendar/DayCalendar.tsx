@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { Occurrence } from '@migenda/shared';
 
 import { dayKey, occurrencesOn } from '../../schedule/dashboardDays';
+import { laneOf, overlapLanes } from '../../schedule/overlapLanes';
 import { dashboardPanelClassName } from '../../classNames/shared';
 import { CalendarHourDropMarker } from './CalendarHourDropMarker';
 import { DayCalendarBlock } from './DayCalendarBlock';
@@ -35,6 +36,7 @@ export function DayCalendar({
   const scroller = useRef<HTMLDivElement>(null);
   const viewedDay = dayKey(date);
   const day = occurrencesOn(occurrences, viewedDay);
+  const lanes = overlapLanes(day);
   const isToday = viewedDay === dayKey(new Date());
   const booking = useBookingSelection();
   const appliedFocus = useRef<string | null>(null);
@@ -104,6 +106,7 @@ export function DayCalendar({
                   <DayCalendarBlock
                     key={key}
                     occurrence={occurrence}
+                    lane={laneOf(lanes, occurrence)}
                     selected={key === booking.selectedKey}
                     onSelect={(anchor) => {
                       onClearHour();

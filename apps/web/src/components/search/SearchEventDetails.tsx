@@ -1,4 +1,5 @@
 import { Loader, Text } from '@mantine/core';
+import { SCHEDULE_VIEW_ALL } from '@migenda/shared';
 
 import { useDashboard } from '../../hooks/useDashboard';
 import { calendarRange } from '../../schedule/calendarPeriod';
@@ -14,7 +15,8 @@ type SearchEventDetailsProps = {
 
 export function SearchEventDetails({ target, onClose }: SearchEventDetailsProps) {
   const range = target ? calendarRange('day', new Date(target.at)) : null;
-  const dashboard = useDashboard(range, range !== null);
+  // A search hit can belong to any teammate, so look the event up across the whole team.
+  const dashboard = useDashboard(range, range !== null, SCHEDULE_VIEW_ALL);
   const occurrence =
     target && dashboard.data
       ? findOccurrence(dashboard.data.occurrences, target.eventId, target.occurrenceStart) ?? null

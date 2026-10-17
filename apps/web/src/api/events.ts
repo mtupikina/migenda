@@ -1,12 +1,13 @@
-import type {
-  CreateEventInput,
-  CreateEventTypeInput,
-  CreateTimeBlockInput,
-  Dashboard,
-  DeleteEventScope,
-  EventDetail,
-  EventNote,
-  EventType,
+import {
+  SCHEDULE_VIEW_ME,
+  type CreateEventInput,
+  type CreateEventTypeInput,
+  type CreateTimeBlockInput,
+  type Dashboard,
+  type DeleteEventScope,
+  type EventDetail,
+  type EventNote,
+  type EventType,
 } from '@migenda/shared';
 
 import { apiPath } from './apiPath';
@@ -19,8 +20,12 @@ export class ScheduleRequestError extends Error {
   }
 }
 
-export async function fetchDashboard(range: DashboardRange = dashboardRange(new Date())): Promise<Dashboard> {
-  const params = new URLSearchParams({ from: range.from, to: range.to });
+/** `viewing` is whose events to load: `me` (the default), `all`, or a teammate's id. */
+export async function fetchDashboard(
+  range: DashboardRange = dashboardRange(new Date()),
+  viewing: string = SCHEDULE_VIEW_ME,
+): Promise<Dashboard> {
+  const params = new URLSearchParams({ from: range.from, to: range.to, assignee: viewing });
   const response = await fetch(apiPath(`/dashboard?${params.toString()}`), {
     credentials: 'include',
   });

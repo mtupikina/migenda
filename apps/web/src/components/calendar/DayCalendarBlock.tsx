@@ -2,8 +2,12 @@ import { format } from 'date-fns';
 import type { KeyboardEvent } from 'react';
 import type { Occurrence } from '@migenda/shared';
 
+import { useScheduleViewing } from '../../hooks/useScheduleViewing';
+import { withAssignee } from '../../schedule/assigneeLabeler';
 import { originalSlotLabel } from '../../schedule/calendarDrag';
 import { formatEventLine } from '../../schedule/formatEventLine';
+import { laneFrame } from '../../schedule/laneFrame';
+import type { Lane } from '../../schedule/overlapLanes';
 import { textOnTypeColor } from '../../schedule/textOnTypeColor';
 import { blockBox } from '../dashboard/miniCalendarLayout';
 import { BookingDragGhost } from './BookingDragGhost';
@@ -30,16 +34,19 @@ function selectFromKeyboard(event: KeyboardEvent<HTMLDivElement>, onSelect: (anc
 
 type DayCalendarBlockProps = {
   occurrence: Occurrence;
+  lane: Lane;
   selected: boolean;
   onSelect: (anchor: HTMLElement) => void;
 };
 
-export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendarBlockProps) {
+export function DayCalendarBlock({ occurrence, lane, selected, onSelect }: DayCalendarBlockProps) {
+  const { assigneeLabel } = useScheduleViewing();
+  const who = assigneeLabel(occurrence);
   const { attributes, listeners, setNodeRef, isDragging } = useBookingDrag(occurrence);
   const drag = useCalendarDrag();
   const box = blockBox(occurrence.start, occurrence.end, DAY_CALENDAR_HOUR_PX);
   const time = format(new Date(occurrence.start), 'HH:mm');
-  const line = formatEventLine(occurrence.title, occurrence.typeName, occurrence.start);
+  const line = withAssignee(who, formatEventLine(occurrence.title, occurrence.typeName, occurrence.start));
   const textOnColor = textOnTypeColor(occurrence.typeColor);
   const stacked = box.height >= 44;
   const picked = selected ? 'z-30 outline outline-2 outline-white' : '';
@@ -47,6 +54,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
   const frame = {
     top: box.top,
     height: box.height,
+    ...laneFrame(lane, 8),
   };
 
   const key = occurrenceKey(occurrence);
@@ -59,7 +67,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
 
   if (isDragging) {
     return (
-      <div ref={setNodeRef} className="absolute right-2 left-2 z-10" style={frame} {...listeners} {...attributes}>
+      <div ref={setNodeRef} className="absolute z-10" style={frame} {...listeners} {...attributes}>
         <BookingDragGhost label={originalSlotLabel(occurrence, true)} />
       </div>
     );
@@ -74,7 +82,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
         tabIndex={0}
         aria-pressed={selected}
         data-occurrence-key={key}
-        className={`absolute right-2 left-2 z-10 flex cursor-pointer overflow-hidden border border-[#d4d1cd] bg-[repeating-linear-gradient(135deg,transparent,transparent_8px,color-mix(in_srgb,#201e1d_5%,transparent)_8px,color-mix(in_srgb,#201e1d_5%,transparent)_16px)] bg-[#f3f1ee] px-3 py-2 text-[#201e1d] shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_14%,transparent)] ${picked}`}
+        className={`absolute z-10 flex cursor-pointer overflow-hidden border border-[#d4d1cd] bg-[repeating-linear-gradient(135deg,transparent,transparent_8px,color-mix(in_srgb,#201e1d_5%,transparent)_8px,color-mix(in_srgb,#201e1d_5%,transparent)_16px)] bg-[#f3f1ee] px-3 py-2 text-[#201e1d] shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_14%,transparent)] ${picked}`}
         style={frame}
         onClick={(event) => handleClick(event.currentTarget)}
         onKeyDown={(event) => selectFromKeyboard(event, onSelect)}
@@ -93,7 +101,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
     <div
       ref={setNodeRef}
       data-occurrence-key={key}
-      className={`absolute right-2 left-2 z-10 flex cursor-grab overflow-hidden px-3 shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_28%,transparent)] ${openLayout(occurrence.completed)} ${textOnColor} ${picked}`}
+      className={`absolute z-10 flex cursor-grab overflow-hidden px-3 shadow-[0_1px_2px_color-mix(in_srgb,#2d2b2b_28%,transparent)] ${openLayout(occurrence.completed)} ${textOnColor} ${picked}`}
       style={{ ...frame, background: occurrence.typeColor }}
       {...listeners}
       {...attributes}
@@ -106,7 +114,7 @@ export function DayCalendarBlock({ occurrence, selected, onSelect }: DayCalendar
         <div className="min-w-0 leading-tight">
           <p className={`truncate text-[13px] font-semibold ${doneTitle}`}>{stacked ? occurrence.title : line}</p>
           <p className={stacked ? `truncate text-[12px] opacity-90 ${doneTitle}` : 'hidden'}>
-            {occurrence.typeName} · {time}
+            {withAssignee(who, `${occurrence.typeName} · ${time}`)}
           </p>
         </div>
       </div>
