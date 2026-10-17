@@ -27,6 +27,7 @@ export function TeamNameForm({ team }: TeamNameFormProps) {
     mutationFn: renameTeam,
     onSuccess: (updated) => {
       queryClient.setQueryData(['team'], updated);
+      void queryClient.invalidateQueries({ queryKey: ['teams'] });
       reset({ name: updated.name });
     },
   });

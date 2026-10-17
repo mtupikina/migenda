@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { AuthModule } from '../auth/auth.module';
 import { User, UserSchema } from '../auth/user.schema';
+import { ActiveTeamController } from './active-team.controller';
 import { Invite, InviteSchema } from './invite.schema';
 import { InvitesController } from './invites.controller';
 import { InvitesService } from './invites.service';
@@ -21,7 +22,7 @@ import { TeamsModule } from './teams.module';
       { name: User.name, schema: UserSchema },
     ]),
   ],
-  controllers: [TeamsController, InvitesController],
+  controllers: [TeamsController, InvitesController, ActiveTeamController],
   providers: [InvitesService],
 })
 export class TeamsApiModule {}

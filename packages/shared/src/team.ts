@@ -44,15 +44,31 @@ export const teamSchema = z.object({
 
 export type Team = z.infer<typeof teamSchema>;
 
-export const renameTeamSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, 'Enter a team name')
-    .max(TEAM_NAME_MAX, `Use ${TEAM_NAME_MAX} characters or fewer`),
+/** One entry in the team switcher: a team the signed-in user belongs to. */
+export const teamSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** The signed-in user's role in this team. */
+  role: teamRoleSchema,
+  /** True for the team every screen is currently showing. */
+  active: z.boolean(),
 });
 
+export type TeamSummary = z.infer<typeof teamSummarySchema>;
+
+const teamNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Enter a team name')
+  .max(TEAM_NAME_MAX, `Use ${TEAM_NAME_MAX} characters or fewer`);
+
+export const renameTeamSchema = z.object({ name: teamNameSchema });
+
 export type RenameTeamInput = z.infer<typeof renameTeamSchema>;
+
+export const createTeamSchema = z.object({ name: teamNameSchema });
+
+export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 
 export const inviteMemberSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email'),

@@ -1,12 +1,12 @@
 import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
-import type { Team } from '@migenda/shared';
+import type { Team, TeamSummary } from '@migenda/shared';
 import { Request } from 'express';
 
 import { AuthService } from '../auth/auth.service';
 import { sessionId } from '../auth/session-id';
 import { InviteMemberDto } from './invite-member.dto';
 import { InvitesService } from './invites.service';
-import { RenameTeamDto } from './rename-team.dto';
+import { TeamNameDto } from './team-name.dto';
 import { TeamsService } from './teams.service';
 
 @Controller('teams')
@@ -17,6 +17,18 @@ export class TeamsController {
     private readonly invites: InvitesService,
   ) {}
 
+  @Get()
+  async list(@Req() req: Request): Promise<TeamSummary[]> {
+    const { user, teamId } = await this.auth.resolveTeamScope(sessionId(req));
+    return this.teams.listFor(user._id, teamId);
+  }
+
+  @Post()
+  async create(@Req() req: Request, @Body() dto: TeamNameDto): Promise<Team> {
+    const { user } = await this.auth.resolveTeamScope(sessionId(req));
+    return this.teams.create(user, dto.name);
+  }
+
   @Get('me')
   async current(@Req() req: Request): Promise<Team> {
     const { user, teamId } = await this.auth.resolveTeamScope(sessionId(req));
@@ -24,7 +36,7 @@ export class TeamsController {
   }
 
   @Patch('me')
-  async rename(@Req() req: Request, @Body() dto: RenameTeamDto): Promise<Team> {
+  async rename(@Req() req: Request, @Body() dto: TeamNameDto): Promise<Team> {
     const { user, teamId } = await this.auth.resolveTeamScope(sessionId(req));
     return this.teams.rename(teamId, user._id, dto.name);
   }

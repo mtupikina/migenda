@@ -3,6 +3,7 @@ import { Group } from '@mantine/core';
 import { AppNavLink } from './AppNavLink';
 import { LogOutNavLink } from './LogOutNavLink';
 import { Nav } from './Nav';
+import { TeamSwitcher } from './TeamSwitcher';
 
 export function AppNav() {
   return (
@@ -13,6 +14,7 @@ export function AppNav() {
         <AppNavLink to="/reports">Reports</AppNavLink>
         <AppNavLink to="/team">Team</AppNavLink>
         <AppNavLink to="/profile">Profile</AppNavLink>
+        <TeamSwitcher />
         <LogOutNavLink />
       </Group>
     </Nav>

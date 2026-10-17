@@ -1,6 +1,7 @@
 import { Box, Loader, Stack, Text } from '@mantine/core';
 
 import { AppNav } from '../components/AppNav';
+import { CreateTeamForm } from '../components/team/CreateTeamForm';
 import { InviteMemberForm } from '../components/team/InviteMemberForm';
 import { PendingInvites } from '../components/team/PendingInvites';
 import { TeamHeading } from '../components/team/TeamHeading';
@@ -37,6 +38,7 @@ export function TeamPage() {
             </Box>
           ) : null}
           {team.isSuccess && isOwner ? <InviteMemberForm /> : null}
+          {team.isSuccess ? <CreateTeamForm /> : null}
         </Stack>
       </Box>
     </Box>

@@ -1,4 +1,4 @@
-import type { PendingMember, Team as TeamDto, TeamMember, TeamRole } from '@migenda/shared';
+import type { PendingMember, Team as TeamDto, TeamMember, TeamRole, TeamSummary } from '@migenda/shared';
 
 import type { UserDocument } from '../auth/user.schema';
 import type { TeamDocument } from './team.schema';
@@ -34,6 +34,10 @@ export function toPendingMember({ user, inviteId }: PendingRecord): PendingMembe
     email: user.email,
     avatarUrl: user.avatarUrl,
   };
+}
+
+export function toTeamSummary(team: TeamDocument, role: TeamRole, active: boolean): TeamSummary {
+  return { id: String(team._id), name: team.name, role, active };
 }
 
 /** The owner comes first, everyone else keeps the order they were given. */

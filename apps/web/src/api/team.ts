@@ -1,4 +1,11 @@
-import type { InviteMemberInput, RenameTeamInput, Team, TeamInvite } from '@migenda/shared';
+import type {
+  CreateTeamInput,
+  InviteMemberInput,
+  RenameTeamInput,
+  Team,
+  TeamInvite,
+  TeamSummary,
+} from '@migenda/shared';
 
 import { apiPath } from './apiPath';
 import { ScheduleRequestError, errorMessage } from './events';
@@ -17,6 +24,21 @@ function json(method: string, body: unknown): RequestInit {
 
 export async function fetchTeam(): Promise<Team> {
   const response = await request('/teams/me', {}, 'Could not load your team.');
+  return response.json() as Promise<Team>;
+}
+
+export async function fetchTeams(): Promise<TeamSummary[]> {
+  const response = await request('/teams', {}, 'Could not load your teams.');
+  return response.json() as Promise<TeamSummary[]>;
+}
+
+export async function createTeam(input: CreateTeamInput): Promise<Team> {
+  const response = await request('/teams', json('POST', input), 'Could not create the team.');
+  return response.json() as Promise<Team>;
+}
+
+export async function switchTeam(teamId: string): Promise<Team> {
+  const response = await request('/users/me/active-team', json('PATCH', { teamId }), 'Could not switch teams.');
   return response.json() as Promise<Team>;
 }
 

@@ -2,7 +2,7 @@ import { TEAM_NAME_MAX } from '@migenda/shared';
 import { Transform } from 'class-transformer';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 
-export class RenameTeamDto {
+export class TeamNameDto {
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MinLength(1)
