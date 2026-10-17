@@ -3,6 +3,7 @@ import { REPORT_FIRST_PAGE_SIZE, REPORT_NEXT_PAGE_SIZE } from '@migenda/shared';
 
 import { fetchReport } from '../api/reports';
 import type { ReportParams } from '../schedule/reportParams';
+import { loadedRowCount } from '../schedule/reportPages';
 
 export function useReport(params: ReportParams | null, enabled: boolean) {
   return useInfiniteQuery({
@@ -16,7 +17,7 @@ export function useReport(params: ReportParams | null, enabled: boolean) {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) => {
-      const loaded = pages.reduce((count, page) => count + page.rows.length, 0);
+      const loaded = loadedRowCount(pages);
       return loaded < lastPage.total ? loaded : undefined;
     },
     enabled: enabled && params !== null,

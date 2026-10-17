@@ -16,7 +16,7 @@ export function ReportRowLine({ row, showAssignee }: ReportRowLineProps) {
   const end = new Date(row.end);
 
   return (
-    <Table.Tr>
+    <Table.Tr className="print:break-inside-avoid">
       <Table.Td className="whitespace-nowrap">{format(start, 'EEE, MMM d')}</Table.Td>
       <Table.Td className="whitespace-nowrap">
         {format(start, 'HH:mm')} – {format(end, 'HH:mm')}

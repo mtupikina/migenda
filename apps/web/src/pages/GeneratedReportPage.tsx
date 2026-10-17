@@ -22,8 +22,10 @@ export function GeneratedReportPage() {
 
   return (
     <Box mih="100vh">
-      <AppNav />
-      <Box maw={900} mx="auto" px={{ base: 20, sm: 72 }} py={70}>
+      <div className="print:hidden">
+        <AppNav />
+      </div>
+      <div className="mx-auto max-w-[900px] px-5 py-[70px] sm:px-[72px] print:max-w-none print:p-0">
         {waiting ? <Loader color="accent" /> : null}
         {report.isError ? <ReportError message={report.error.message} /> : null}
         {report.data && user ? (
@@ -33,10 +35,10 @@ export function GeneratedReportPage() {
             userId={user.id}
             hasMore={report.hasNextPage}
             loadingMore={report.isFetchingNextPage}
-            onLoadMore={() => void report.fetchNextPage()}
+            loadMore={async () => (await report.fetchNextPage({ throwOnError: true })).hasNextPage}
           />
         ) : null}
-      </Box>
+      </div>
     </Box>
   );
 }

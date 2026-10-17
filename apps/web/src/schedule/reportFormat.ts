@@ -22,6 +22,10 @@ export function formatCompletedAt(iso: string): string {
   return format(new Date(iso), 'MMM d, HH:mm');
 }
 
+export function reportDocumentTitle(typeName: string, range: ReportRange): string {
+  return `${typeName} report, ${range.from} to ${range.to}`;
+}
+
 export function formatReportRange(range: ReportRange): string {
   const from = parseISO(range.from);
   const to = parseISO(range.to);

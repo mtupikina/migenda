@@ -13,7 +13,7 @@ export const REPORT_PERIODS = [
 export type ReportPeriod = (typeof REPORT_PERIODS)[number]['id'];
 
 export const REPORT_RANGE_MAX_DAYS = 366;
-export const REPORT_FIRST_PAGE_SIZE = 5;
+export const REPORT_FIRST_PAGE_SIZE = 25;
 export const REPORT_NEXT_PAGE_SIZE = 10;
 export const REPORT_PAGE_SIZE_MAX = 50;
 
