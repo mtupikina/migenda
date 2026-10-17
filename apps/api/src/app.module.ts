@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { env } from './env';
 import { EventsModule } from './events/events.module';
 import { ReportsModule } from './reports/reports.module';
+import { TeamsApiModule } from './teams/teams-api.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ReportsModule } from './reports/reports.module';
     AuthModule,
     EventsModule,
     ReportsModule,
+    TeamsApiModule,
   ],
 })
 export class AppModule {}

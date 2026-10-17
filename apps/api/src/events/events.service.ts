@@ -21,6 +21,8 @@ import {
 import { AuthService } from '../auth/auth.service';
 import { displayName } from '../auth/display-name';
 import { UserDocument } from '../auth/user.schema';
+import { TeamsService } from '../teams/teams.service';
+import { bookingOf, type Booking } from './booking';
 import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventNoteDto } from './create-event-note.dto';
 import { CreateTimeBlockDto } from './create-time-block.dto';
@@ -47,6 +49,7 @@ import { shiftYmd, zonedLocalToUtc, zonedParts, zonedYmd } from './zoned-time';
 export class EventsService {
   constructor(
     private readonly auth: AuthService,
+    private readonly teams: TeamsService,
     @InjectModel(CalendarEvent.name) private readonly events: Model<CalendarEventDocument>,
     @InjectModel(EventType.name) private readonly types: Model<EventTypeDocument>,
     @InjectModel(EventException.name) private readonly exceptions: Model<EventExceptionDocument>,
@@ -55,19 +58,20 @@ export class EventsService {
   ) {}
 
   async dashboard(sid: string, fromIso: string, toIso: string): Promise<Dashboard> {
-    const user = await this.auth.resolveUserFromSession(sid);
+    const { user, teamId } = await this.auth.resolveTeamScope(sid);
     const from = new Date(fromIso);
     const to = new Date(toIso);
     if (!(from < to)) {
       throw new BadRequestException('The end of the range must be after the start');
     }
 
-    const [rules, typeDocs, blockDocs] = await Promise.all([
+    const [rules, typeDocs, blockDocs, assignees] = await Promise.all([
       this.events
-        .find({ assigneeId: user._id, ...startsInWindow(from, to) })
+        .find({ teamId, assigneeId: user._id, ...startsInWindow(from, to) })
         .exec(),
-      this.typesOf(user),
+      this.typesOf(teamId),
       this.timeBlocks.find({ userId: user._id, start: { $lt: to }, end: { $gt: from } }).exec(),
+      this.assigneeOptions(teamId),
     ]);
     const exceptionDocs = await this.exceptions
       .find({
@@ -82,23 +86,24 @@ export class EventsService {
     return {
       occurrences,
       types: typeDocs.map(toEventType),
-      assignees: [toAssignee(user)],
+      assignees,
     };
   }
 
   async createEvent(sid: string, dto: CreateEventDto): Promise<{ id: string }> {
-    const user = await this.auth.resolveUserFromSession(sid);
+    const { user, teamId } = await this.auth.resolveTeamScope(sid);
     assertTimeZone(dto.timeZone);
     const start = new Date(dto.start);
     const end = new Date(dto.end);
     const weekdays = uniqueWeekdays(dto.weekdays);
     assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
-    this.assertAssignee(user, dto.assigneeId);
-    await this.assertOwnedType(user, dto.typeId);
+    await this.assertAssignee(teamId, dto.assigneeId);
+    await this.assertTeamType(teamId, dto.typeId);
 
     const created = await this.events.create({
-      userId: user._id,
-      assigneeId: user._id,
+      teamId,
+      createdById: user._id,
+      assigneeId: new Types.ObjectId(dto.assigneeId),
       typeId: new Types.ObjectId(dto.typeId),
       title: dto.title,
       description: dto.description,
@@ -113,8 +118,8 @@ export class EventsService {
   }
 
   async getEvent(sid: string, eventId: string, occurrenceStart?: string): Promise<EventDetail> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const event = await this.teamEvent(teamId, eventId);
     const detail = toEventDetail(event);
     const instant = event.weekdays.length > 0 ? this.occurrenceInstant(occurrenceStart) : null;
     if (!instant) {
@@ -133,8 +138,8 @@ export class EventsService {
   }
 
   async updateEvent(sid: string, eventId: string, dto: UpdateEventDto): Promise<{ id: string; warning?: string }> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const event = await this.teamEvent(teamId, eventId);
     assertTimeZone(dto.timeZone);
     const start = new Date(dto.start);
     const end = new Date(dto.end);
@@ -142,26 +147,27 @@ export class EventsService {
       throw new BadRequestException('Enter a valid date');
     }
     const weekdays = uniqueWeekdays(dto.weekdays);
-    this.assertAssignee(user, dto.assigneeId);
-    await this.assertOwnedType(user, dto.typeId);
+    await this.assertAssignee(teamId, dto.assigneeId);
+    await this.assertTeamType(teamId, dto.typeId);
     const repeating = event.weekdays.length > 0;
     const scope = editScope(repeating, dto.scope);
     if (!scope) {
       throw new BadRequestException('Choose which events to update');
     }
     if (!repeating) {
-      return this.rewriteSeries(user, event, dto, start, end, weekdays);
+      return this.rewriteSeries(event, dto, start, end, weekdays);
     }
     const instant = this.occurrenceInstant(dto.occurrenceStart);
     if (!instant) {
       throw new BadRequestException('Enter a valid date');
     }
     const key = await this.resolveOccurrenceKey(event, instant);
-    return this.updateRepeating(user, event, key, dto, start, end, weekdays, scope);
+    return this.updateRepeating(event, key, dto, start, end, weekdays, scope);
   }
 
   async listNotes(sid: string, eventId: string, occurrenceStart: string | undefined): Promise<EventNoteDto[]> {
-    const { event, start } = await this.ownedOccurrence(sid, eventId, occurrenceStart);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const { event, start } = await this.teamOccurrence(teamId, eventId, occurrenceStart);
     const notes = await this.eventNotes
       .find({ eventId: event._id, occurrenceStart: start })
       .sort({ createdAt: -1 })
@@ -170,8 +176,8 @@ export class EventsService {
   }
 
   async createNote(sid: string, eventId: string, dto: CreateEventNoteDto): Promise<EventNoteDto> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const { event, start } = await this.ownedOccurrence(sid, eventId, dto.occurrenceStart);
+    const { user, teamId } = await this.auth.resolveTeamScope(sid);
+    const { event, start } = await this.teamOccurrence(teamId, eventId, dto.occurrenceStart);
     const note = await this.eventNotes.create({
       eventId: event._id,
       occurrenceStart: start,
@@ -183,8 +189,8 @@ export class EventsService {
   }
 
   async deleteEvent(sid: string, eventId: string, dto: DeleteEventDto): Promise<void> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const event = await this.teamEvent(teamId, eventId);
     const instant = this.occurrenceInstant(dto.occurrenceStart);
     if (!instant) {
       throw new BadRequestException('Enter a valid date');
@@ -204,8 +210,8 @@ export class EventsService {
   }
 
   async duplicateEvent(sid: string, eventId: string, dto: DuplicateEventDto): Promise<{ start: string }> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const { user, teamId } = await this.auth.resolveTeamScope(sid);
+    const event = await this.teamEvent(teamId, eventId);
     const start = new Date(dto.occurrenceStart);
     const end = new Date(dto.occurrenceEnd);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
@@ -226,8 +232,9 @@ export class EventsService {
     );
     const copyEnd = new Date(copyStart.getTime() + (end.getTime() - start.getTime()));
     await this.events.create({
-      userId: user._id,
-      assigneeId: user._id,
+      teamId: event.teamId,
+      createdById: user._id,
+      assigneeId: event.assigneeId,
       typeId: event.typeId,
       title: exception?.title || event.title,
       description: exception?.description ?? event.description,
@@ -241,8 +248,8 @@ export class EventsService {
   }
 
   async completeEvent(sid: string, eventId: string, dto: CompleteEventDto): Promise<{ completed: true }> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const event = await this.teamEvent(teamId, eventId);
     const instant = this.occurrenceInstant(dto.occurrenceStart);
     if (!instant) {
       throw new BadRequestException('Enter a valid date');
@@ -261,8 +268,8 @@ export class EventsService {
   }
 
   async moveEvent(sid: string, eventId: string, dto: MoveEventDto): Promise<{ id: string; start: string; end: string }> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const event = await this.teamEvent(teamId, eventId);
     const instant = this.occurrenceInstant(dto.occurrenceStart);
     if (!instant) {
       throw new BadRequestException('Enter a valid date');
@@ -277,27 +284,27 @@ export class EventsService {
     if (key.getTime() === newStart.getTime()) {
       return { id: String(event._id), start: key.toISOString(), end: new Date(key.getTime() + duration).toISOString() };
     }
-    await this.assertRangeOpen(user, event, key, newStart, newEnd);
+    await this.assertRangeOpen(event, key, newStart, newEnd);
     const repeating = event.weekdays.length > 0;
     let targetId = String(event._id);
     if (!repeating) {
       await this.moveOneTime(event, key, newStart, newEnd);
     } else {
-      targetId = await this.detachMoved(user, event, key, newStart, newEnd);
+      targetId = await this.detachMoved(event, key, newStart, newEnd);
     }
     return { id: targetId, start: newStart.toISOString(), end: newEnd.toISOString() };
   }
 
   async listTypes(sid: string): Promise<EventTypeDto[]> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const typeDocs = await this.typesOf(user);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const typeDocs = await this.typesOf(teamId);
     return typeDocs.map(toEventType);
   }
 
   async createType(sid: string, dto: CreateEventTypeDto): Promise<EventTypeDto> {
-    const user = await this.auth.resolveUserFromSession(sid);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
     const existing = await this.types
-      .findOne({ userId: user._id, name: dto.name })
+      .findOne({ teamId, name: dto.name })
       .collation({ locale: 'en', strength: 2 })
       .exec();
     if (existing) {
@@ -305,7 +312,7 @@ export class EventsService {
     }
 
     const created = await this.types.create({
-      userId: user._id,
+      teamId,
       name: dto.name,
       color: dto.color,
     });
@@ -313,7 +320,7 @@ export class EventsService {
   }
 
   async createTimeBlock(sid: string, dto: CreateTimeBlockDto): Promise<{ id: string }> {
-    const user = await this.auth.resolveUserFromSession(sid);
+    const { user, teamId } = await this.auth.resolveTeamScope(sid);
     const start = new Date(dto.start);
     const end = new Date(dto.end);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
@@ -322,7 +329,7 @@ export class EventsService {
     if (!(end > start)) {
       throw new BadRequestException('End time must be after the start time');
     }
-    const touching = await this.occurrencesTouching(user, start, end);
+    const touching = await this.occurrencesTouching({ teamId, assigneeId: user._id }, start, end);
     const conflicting = conflictingOccurrences(
       touching.filter((item) => !item.blocked),
       { eventId: '', seriesStart: '' },
@@ -355,22 +362,28 @@ export class EventsService {
     }
   }
 
-  private typesOf(user: UserDocument): Promise<EventTypeDocument[]> {
-    return this.types.find({ userId: user._id }).sort({ name: 1 }).exec();
+  private typesOf(teamId: Types.ObjectId): Promise<EventTypeDocument[]> {
+    return this.types.find({ teamId }).sort({ name: 1 }).exec();
   }
 
-  private assertAssignee(user: UserDocument, assigneeId: string): void {
-    if (assigneeId === String(user._id)) {
-      return;
+  private async assigneeOptions(teamId: Types.ObjectId): Promise<AssigneeOption[]> {
+    const members = await this.teams.memberUsers(teamId);
+    return members.map(toAssignee);
+  }
+
+  private async assertAssignee(teamId: Types.ObjectId, assigneeId: string): Promise<void> {
+    const validId = Types.ObjectId.isValid(assigneeId);
+    const member = validId && (await this.teams.isMember(teamId, new Types.ObjectId(assigneeId)));
+    if (!member) {
+      throw new BadRequestException('Choose a member of your team to assign this to');
     }
-    throw new BadRequestException('You can only assign a task to yourself until you have a team');
   }
 
-  private async ownedEvent(user: UserDocument, eventId: string): Promise<CalendarEventDocument> {
+  private async teamEvent(teamId: Types.ObjectId, eventId: string): Promise<CalendarEventDocument> {
     if (!Types.ObjectId.isValid(eventId)) {
       throw new NotFoundException('Choose a task');
     }
-    const event = await this.events.findOne({ _id: eventId, assigneeId: user._id }).exec();
+    const event = await this.events.findOne({ _id: eventId, teamId }).exec();
     if (!event) {
       throw new NotFoundException('Choose a task');
     }
@@ -405,13 +418,12 @@ export class EventsService {
     await this.eventNotes.deleteMany({ eventId: event._id, occurrenceStart: { $gte: start } }).exec();
   }
 
-  private async ownedOccurrence(
-    sid: string,
+  private async teamOccurrence(
+    teamId: Types.ObjectId,
     eventId: string,
     occurrenceStart: string | undefined,
   ): Promise<{ event: CalendarEventDocument; start: Date }> {
-    const user = await this.auth.resolveUserFromSession(sid);
-    const event = await this.ownedEvent(user, eventId);
+    const event = await this.teamEvent(teamId, eventId);
     const instant = this.occurrenceInstant(occurrenceStart);
     if (!instant) {
       throw new BadRequestException('Enter a valid date');
@@ -436,13 +448,12 @@ export class EventsService {
   }
 
   private async assertRangeOpen(
-    user: UserDocument,
     event: CalendarEventDocument,
     key: Date,
     start: Date,
     end: Date,
   ): Promise<void> {
-    const occurrences = await this.occurrencesTouching(user, start, end);
+    const occurrences = await this.occurrencesTouching(bookingOf(event, String(event.assigneeId)), start, end);
     const open = rangeIsOpen(
       occurrences,
       { eventId: String(event._id), seriesStart: key.toISOString() },
@@ -454,18 +465,20 @@ export class EventsService {
     }
   }
 
-  private async occurrencesTouching(user: UserDocument, start: Date, end: Date): Promise<Occurrence[]> {
+  /** Occurrences on one person's calendar within a team that overlap the range. */
+  private async occurrencesTouching(booking: Booking, start: Date, end: Date): Promise<Occurrence[]> {
     const [candidates, blockDocs] = await Promise.all([
       this.events
         .find({
-          assigneeId: user._id,
+          teamId: booking.teamId,
+          assigneeId: booking.assigneeId,
           $or: [
             { weekdays: { $size: 0 }, start: { $lt: end }, end: { $gt: start } },
             { 'weekdays.0': { $exists: true }, start: { $lt: end } },
           ],
         })
         .exec(),
-      this.timeBlocks.find({ userId: user._id, start: { $lt: end }, end: { $gt: start } }).exec(),
+      this.timeBlocks.find({ userId: booking.assigneeId, start: { $lt: end }, end: { $gt: start } }).exec(),
     ]);
     const pad = candidates.reduce((max, rule) => Math.max(max, rule.end.getTime() - rule.start.getTime()), 0);
     const from = new Date(start.getTime() - pad);
@@ -492,14 +505,13 @@ export class EventsService {
   }
 
   private async detachMoved(
-    user: UserDocument,
     event: CalendarEventDocument,
     key: Date,
     start: Date,
     end: Date,
   ): Promise<string> {
     const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: key }).exec();
-    return this.detachStandalone(user, event, key, {
+    return this.detachStandalone(event, key, {
       title: exception?.title || event.title,
       description: exception?.description ?? event.description,
       typeId: String(event.typeId),
@@ -512,7 +524,6 @@ export class EventsService {
   }
 
   private async updateRepeating(
-    user: UserDocument,
     event: CalendarEventDocument,
     key: Date,
     dto: UpdateEventDto,
@@ -522,25 +533,24 @@ export class EventsService {
     scope: EventScope,
   ): Promise<{ id: string; warning?: string }> {
     if (scope === 'one') {
-      const id = await this.updateOneOccurrence(user, event, key, dto, start, end);
+      const id = await this.updateOneOccurrence(event, key, dto, start, end);
       return { id };
     }
     if (scope === 'following') {
-      return this.updateFollowing(user, event, key, dto, start, end, weekdays);
+      return this.updateFollowing(event, key, dto, start, end, weekdays);
     }
     const clock = seriesClock(event.start, start, end, dto.timeZone);
-    return this.rewriteSeries(user, event, dto, clock.start, clock.end, weekdays);
+    return this.rewriteSeries(event, dto, clock.start, clock.end, weekdays);
   }
 
   private async updateOneOccurrence(
-    user: UserDocument,
     event: CalendarEventDocument,
     key: Date,
     dto: UpdateEventDto,
     start: Date,
     end: Date,
   ): Promise<string> {
-    return this.detachStandalone(user, event, key, {
+    return this.detachStandalone(event, key, {
       title: dto.title,
       description: dto.description,
       typeId: dto.typeId,
@@ -552,7 +562,6 @@ export class EventsService {
   }
 
   private async updateFollowing(
-    user: UserDocument,
     event: CalendarEventDocument,
     key: Date,
     dto: UpdateEventDto,
@@ -564,7 +573,7 @@ export class EventsService {
     const dayBefore = shiftYmd(zonedYmd(key, event.timeZone), -1);
     const opensSeries = dayBefore < zonedYmd(event.start, event.timeZone);
     if (opensSeries) {
-      return this.rewriteSeries(user, event, dto, start, end, weekdays);
+      return this.rewriteSeries(event, dto, start, end, weekdays);
     }
     const carriedExceptions = await this.exceptions.find({ eventId: event._id, occurrenceStart: { $gte: key } }).exec();
     const carriedNotes = await this.eventNotes.find({ eventId: event._id, occurrenceStart: { $gte: key } }).exec();
@@ -577,7 +586,7 @@ export class EventsService {
 
     const rule = ruleFrom(String(created._id), start, end, dto.timeZone, weekdays, dto.until);
     const warning = await this.omitConflictingOccurrences(
-      user,
+      bookingOf(event, dto.assigneeId),
       created._id,
       rule,
       (item) => item.eventId === String(event._id) && item.seriesStart >= key.toISOString(),
@@ -586,7 +595,6 @@ export class EventsService {
   }
 
   private async detachStandalone(
-    user: UserDocument,
     event: CalendarEventDocument,
     key: Date,
     fields: StandaloneFields,
@@ -597,14 +605,15 @@ export class EventsService {
     const rule = ruleFrom('detached', fields.start, fields.end, fields.timeZone, [], null);
     if (!fields.keepTime) {
       await this.assertRuleOpen(
-        user,
+        bookingOf(event, fields.assigneeId),
         rule,
         (item) => item.eventId === String(event._id) && item.seriesStart === key.toISOString(),
       );
     }
     const exception = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: key }).exec();
     const created = await this.events.create({
-      userId: event.userId,
+      teamId: event.teamId,
+      createdById: event.createdById,
       assigneeId: new Types.ObjectId(fields.assigneeId),
       typeId: new Types.ObjectId(fields.typeId),
       title: fields.title,
@@ -639,7 +648,6 @@ export class EventsService {
   }
 
   private async rewriteSeries(
-    user: UserDocument,
     event: CalendarEventDocument,
     dto: UpdateEventDto,
     start: Date,
@@ -648,12 +656,13 @@ export class EventsService {
   ): Promise<{ id: string; warning?: string }> {
     assertSchedule(start, end, weekdays, dto.until, dto.timeZone);
     const rule = ruleFrom(String(event._id), start, end, dto.timeZone, weekdays, dto.until);
+    const booking = bookingOf(event, dto.assigneeId);
     let warning: string | undefined;
     if (weekdays.length === 0) {
-      await this.assertRuleOpen(user, rule, (item) => item.eventId === String(event._id));
+      await this.assertRuleOpen(booking, rule, (item) => item.eventId === String(event._id));
     } else {
       warning = await this.omitConflictingOccurrences(
-        user,
+        booking,
         event._id,
         rule,
         (item) => item.eventId === String(event._id),
@@ -666,14 +675,14 @@ export class EventsService {
   }
 
   private async omitConflictingOccurrences(
-    user: UserDocument,
+    booking: Booking,
     targetEventId: Types.ObjectId,
     rule: EventRule,
     skip: (item: Occurrence) => boolean,
   ): Promise<string | undefined> {
     const bounds = ruleBounds(rule.start, rule.end, rule.weekdays, rule.until, rule.timeZone);
     const expanded = expandEvent(rule, bounds.from, bounds.to);
-    const existing = await this.occurrencesTouching(user, bounds.from, bounds.to);
+    const existing = await this.occurrencesTouching(booking, bounds.from, bounds.to);
     const others = existing.filter((item) => !skip(item));
     const priorExceptions = await this.exceptions.find({ eventId: targetEventId }).exec();
     const deletedStarts = new Set(
@@ -730,7 +739,8 @@ export class EventsService {
     weekdays: number[],
   ): Promise<CalendarEventDocument> {
     return this.events.create({
-      userId: event.userId,
+      teamId: event.teamId,
+      createdById: event.createdById,
       assigneeId: new Types.ObjectId(dto.assigneeId),
       typeId: new Types.ObjectId(dto.typeId),
       title: dto.title,
@@ -778,10 +788,10 @@ export class EventsService {
     return new Map(expanded.map((item) => [zonedYmd(item.start, event.timeZone), item.start]));
   }
 
-  private async assertRuleOpen(user: UserDocument, rule: EventRule, skip: (item: Occurrence) => boolean): Promise<void> {
+  private async assertRuleOpen(booking: Booking, rule: EventRule, skip: (item: Occurrence) => boolean): Promise<void> {
     const bounds = ruleBounds(rule.start, rule.end, rule.weekdays, rule.until, rule.timeZone);
     const expanded = expandEvent(rule, bounds.from, bounds.to);
-    const existing = await this.occurrencesTouching(user, bounds.from, bounds.to);
+    const existing = await this.occurrencesTouching(booking, bounds.from, bounds.to);
     const others = existing.filter((item) => !skip(item));
     const blocked = expanded.some(
       (item) => !rangeIsOpen(others, { eventId: '', seriesStart: '' }, item.start.toISOString(), item.end.toISOString()),
@@ -815,11 +825,11 @@ export class EventsService {
     return containsInstant(ruleOf(event), start);
   }
 
-  private async assertOwnedType(user: UserDocument, typeId: string): Promise<void> {
+  private async assertTeamType(teamId: Types.ObjectId, typeId: string): Promise<void> {
     if (!Types.ObjectId.isValid(typeId)) {
       throw new NotFoundException('Choose a type');
     }
-    const type = await this.types.findOne({ _id: typeId, userId: user._id }).exec();
+    const type = await this.types.findOne({ _id: typeId, teamId }).exec();
     if (!type) {
       throw new NotFoundException('Choose a type');
     }

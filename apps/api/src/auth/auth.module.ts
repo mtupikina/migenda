@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { MailService } from '../mail/mail.service';
 import { ProfileController } from '../profile/profile.controller';
 import { ProfileService } from '../profile/profile.service';
+import { TeamsModule } from '../teams/teams.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PasswordReset, PasswordResetSchema } from './password-reset.schema';
@@ -12,6 +13,7 @@ import { User, UserSchema } from './user.schema';
 
 @Module({
   imports: [
+    TeamsModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Session.name, schema: SessionSchema },

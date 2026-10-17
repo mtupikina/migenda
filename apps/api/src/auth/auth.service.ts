@@ -26,6 +26,8 @@ import { RegisterDto } from './register.dto';
 import type { OAuthProfile } from './oauth.types';
 import { Session, SessionDocument } from './session.schema';
 import { rethrowPersistError } from '../mongo-errors';
+import type { TeamScope } from '../teams/team-scope';
+import { TeamsService } from '../teams/teams.service';
 import { User, UserDocument } from './user.schema';
 
 @Injectable()
@@ -36,6 +38,7 @@ export class AuthService {
     @InjectModel(PasswordReset.name)
     private readonly passwordResets: Model<PasswordResetDocument>,
     private readonly mail: MailService,
+    private readonly teams: TeamsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -58,6 +61,7 @@ export class AuthService {
       rethrowPersistError(error, 'Register');
     }
 
+    await this.teams.ensureActiveTeam(user);
     return this.createSession(user, undefined);
   }
 
@@ -93,6 +97,7 @@ export class AuthService {
       await user.save();
     }
 
+    await this.teams.ensureActiveTeam(user);
     return this.createSession(user, REMEMBER_ME_MS);
   }
 
@@ -168,6 +173,13 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  /** The signed-in user and the team their request acts on. */
+  async resolveTeamScope(sid: string | undefined): Promise<TeamScope> {
+    const user = await this.resolveUserFromSession(sid);
+    const teamId = await this.teams.ensureActiveTeam(user);
+    return { user, teamId };
   }
 
   private findUserByEmail(email: string) {

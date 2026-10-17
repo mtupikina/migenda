@@ -73,6 +73,15 @@ export {
   type ReportSummary,
 } from './report';
 export {
+  TEAM_ROLES,
+  teamMemberSchema,
+  teamRoleSchema,
+  teamSchema,
+  type Team,
+  type TeamMember,
+  type TeamRole,
+} from './team';
+export {
   SEARCH_QUERY_MAX,
   SEARCH_RESULT_MAX,
   escapeSearchRegex,

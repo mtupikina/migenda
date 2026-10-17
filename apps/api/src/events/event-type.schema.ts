@@ -5,8 +5,8 @@ export type EventTypeDocument = HydratedDocument<EventType>;
 
 @Schema()
 export class EventType {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Team', required: true })
+  teamId!: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
   name!: string;
@@ -17,6 +17,6 @@ export class EventType {
 
 export const EventTypeSchema = SchemaFactory.createForClass(EventType);
 EventTypeSchema.index(
-  { userId: 1, name: 1 },
+  { teamId: 1, name: 1 },
   { unique: true, collation: { locale: 'en', strength: 2 } },
 );

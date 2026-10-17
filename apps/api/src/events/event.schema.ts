@@ -5,8 +5,11 @@ export type CalendarEventDocument = HydratedDocument<CalendarEvent>;
 
 @Schema()
 export class CalendarEvent {
+  @Prop({ type: Types.ObjectId, ref: 'Team', required: true })
+  teamId!: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId!: Types.ObjectId;
+  createdById!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   assigneeId!: Types.ObjectId;
@@ -37,4 +40,4 @@ export class CalendarEvent {
 }
 
 export const CalendarEventSchema = SchemaFactory.createForClass(CalendarEvent);
-CalendarEventSchema.index({ assigneeId: 1, start: 1 });
+CalendarEventSchema.index({ teamId: 1, assigneeId: 1, start: 1 });

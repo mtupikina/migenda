@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { AuthModule } from '../auth/auth.module';
+import { TeamsModule } from '../teams/teams.module';
 import { EventException, EventExceptionSchema } from './event-exception.schema';
 import { EventNote, EventNoteSchema } from './event-note.schema';
 import { CalendarEvent, CalendarEventSchema } from './event.schema';
@@ -14,6 +15,7 @@ import { TimeBlock, TimeBlockSchema } from './time-block.schema';
 @Module({
   imports: [
     AuthModule,
+    TeamsModule,
     MongooseModule.forFeature([
       { name: CalendarEvent.name, schema: CalendarEventSchema },
       { name: EventType.name, schema: EventTypeSchema },

@@ -24,31 +24,31 @@ export class SearchService {
   ) {}
 
   async search(sid: string, rawQuery: string | undefined, from: string): Promise<SearchResponse> {
-    const user = await this.auth.resolveUserFromSession(sid);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
     const query = (rawQuery ?? '').trim();
     if (!query) {
       return { query: '', results: [] };
     }
 
-    const owned = await this.events.find({ assigneeId: user._id }).select({ _id: 1 }).exec();
-    const ownedIds = owned.map((doc) => doc._id);
-    if (ownedIds.length === 0) {
+    const inTeam = await this.events.find({ teamId }).select({ _id: 1 }).exec();
+    const teamEventIds = inTeam.map((doc) => doc._id);
+    if (teamEventIds.length === 0) {
       return { query, results: [] };
     }
 
     const text = { $regex: escapeSearchRegex(query), $options: 'i' };
     const [seriesDocs, exceptionDocs, noteDocs] = await Promise.all([
       this.events
-        .find({ _id: { $in: ownedIds }, $or: [{ title: text }, { description: text }] })
+        .find({ _id: { $in: teamEventIds }, $or: [{ title: text }, { description: text }] })
         .exec(),
       this.exceptions
         .find({
-          eventId: { $in: ownedIds },
+          eventId: { $in: teamEventIds },
           deleted: { $ne: true },
           $or: [{ title: text }, { description: text }],
         })
         .exec(),
-      this.eventNotes.find({ eventId: { $in: ownedIds }, text }).exec(),
+      this.eventNotes.find({ eventId: { $in: teamEventIds }, text }).exec(),
     ]);
 
     const neededIds = uniqueObjectIds([
@@ -61,7 +61,7 @@ export class SearchService {
     }
 
     const [eventDocs, allExceptions] = await Promise.all([
-      this.events.find({ _id: { $in: neededIds }, assigneeId: user._id }).exec(),
+      this.events.find({ _id: { $in: neededIds }, teamId }).exec(),
       this.exceptions.find({ eventId: { $in: neededIds } }).exec(),
     ]);
 

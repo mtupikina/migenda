@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 @Schema({ _id: false })
 export class NotificationPreferences {
@@ -40,6 +40,9 @@ export class User {
 
   @Prop({ type: NotificationPreferencesSchema, default: () => ({}) })
   notifications!: NotificationPreferences;
+
+  @Prop({ type: Types.ObjectId, ref: 'Team' })
+  activeTeamId?: Types.ObjectId;
 
   @Prop({ unique: true, sparse: true })
   googleId?: string;

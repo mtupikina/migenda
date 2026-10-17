@@ -5,20 +5,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userFullName, type User } from '@migenda/shared';
 import { patchProfile, ProfileUpdateError } from '../../api/profile';
 import { profileCardClassName } from '../../classNames/shared';
+import { avatarInitials } from '../../user/avatarInitials';
 
 type ProfileAvatarCardProps = {
   user: User;
 };
-
-function avatarInitials(user: User) {
-  const first = user.firstName.trim().charAt(0);
-  const last = user.lastName.trim().charAt(0);
-  const initials = `${first}${last}`.trim();
-  if (initials) {
-    return initials.toUpperCase();
-  }
-  return userFullName(user).charAt(0).toUpperCase() || '?';
-}
 
 export function ProfileAvatarCard({ user }: ProfileAvatarCardProps) {
   const inputRef = useRef<HTMLInputElement>(null);

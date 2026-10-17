@@ -35,14 +35,14 @@ export class ReportsService {
   ) {}
 
   async report(sid: string, query: ReportQueryDto): Promise<ReportResponse> {
-    const user = await this.auth.resolveUserFromSession(sid);
+    const { teamId } = await this.auth.resolveTeamScope(sid);
     const from = new Date(query.from);
     const to = new Date(query.to);
     assertRange(from, to);
-    const type = await this.ownedType(user, query.typeId);
+    const type = await this.teamType(teamId, query.typeId);
 
     const eventDocs = await this.events
-      .find({ ...this.reportScope(user), typeId: type._id, ...startsInWindow(from, to) })
+      .find({ teamId, typeId: type._id, ...startsInWindow(from, to) })
       .exec();
     const eventIds = eventDocs.map((doc) => doc._id);
     const [exceptionDocs, notes, assignees] = await Promise.all([
@@ -73,13 +73,8 @@ export class ReportsService {
     };
   }
 
-  /** Whose events a report may include. Widens to the user's team when teams exist. */
-  private reportScope(user: UserDocument) {
-    return { assigneeId: user._id };
-  }
-
-  private async ownedType(user: UserDocument, typeId: string): Promise<EventTypeDocument> {
-    const type = await this.types.findOne({ _id: typeId, userId: user._id }).exec();
+  private async teamType(teamId: Types.ObjectId, typeId: string): Promise<EventTypeDocument> {
+    const type = await this.types.findOne({ _id: typeId, teamId }).exec();
     if (!type) {
       throw new NotFoundException('This event type could not be found. Pick one on the Reports page.');
     }

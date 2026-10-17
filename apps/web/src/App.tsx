@@ -7,8 +7,8 @@ import { GeneratedReportPage } from './pages/GeneratedReportPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordConfirmPage } from './pages/ResetPasswordConfirmPage';
-import { AppRouteStubPage } from './pages/AppRouteStubPage';
 import { SearchPage } from './pages/SearchPage';
+import { TeamPage } from './pages/TeamPage';
 import { LogoutPage } from './pages/LogoutPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -31,7 +31,7 @@ export function App() {
       <Route path="/search" element={<SearchPage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/reports/generated" element={<GeneratedReportPage />} />
-      <Route path="/team" element={<AppRouteStubPage />} />
+      <Route path="/team" element={<TeamPage />} />
       <Route path="/profile" element={<ProfilePage />} />
     </Routes>
   );
