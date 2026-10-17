@@ -182,7 +182,7 @@ export class AuthService {
     return { user, teamId };
   }
 
-  private findUserByEmail(email: string) {
+  findUserByEmail(email: string) {
     const normalized = email.toLowerCase().trim();
     return this.users
       .findOne({ email: normalized })

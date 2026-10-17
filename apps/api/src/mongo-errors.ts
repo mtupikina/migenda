@@ -9,9 +9,13 @@ function mongoErrorCode(error: unknown): number | undefined {
   return typeof code === 'number' ? code : undefined;
 }
 
+export function isDuplicateKeyError(error: unknown): boolean {
+  return mongoErrorCode(error) === 11000;
+}
+
 export function rethrowPersistError(error: unknown, context: string): never {
   const code = mongoErrorCode(error);
-  if (code === 11000) {
+  if (isDuplicateKeyError(error)) {
     throw new ConflictException('An account with this email already exists');
   }
   if (code === 121) {

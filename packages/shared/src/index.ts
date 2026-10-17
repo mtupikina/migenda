@@ -73,11 +73,20 @@ export {
   type ReportSummary,
 } from './report';
 export {
+  TEAM_NAME_MAX,
   TEAM_ROLES,
+  inviteMemberSchema,
+  pendingMemberSchema,
+  renameTeamSchema,
+  teamInviteSchema,
   teamMemberSchema,
   teamRoleSchema,
   teamSchema,
+  type InviteMemberInput,
+  type PendingMember,
+  type RenameTeamInput,
   type Team,
+  type TeamInvite,
   type TeamMember,
   type TeamRole,
 } from './team';

@@ -1,4 +1,4 @@
-const TEAM_NAME_MAX = 50;
+import { TEAM_NAME_MAX } from '@migenda/shared';
 
 /** Name given to the team created for a new account. */
 export function personalTeamName(firstName: string): string {

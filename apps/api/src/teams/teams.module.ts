@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { User, UserSchema } from '../auth/user.schema';
+import { Invite, InviteSchema } from './invite.schema';
 import { Membership, MembershipSchema } from './membership.schema';
 import { Team, TeamSchema } from './team.schema';
 import { TeamsService } from './teams.service';
@@ -11,6 +12,7 @@ import { TeamsService } from './teams.service';
     MongooseModule.forFeature([
       { name: Team.name, schema: TeamSchema },
       { name: Membership.name, schema: MembershipSchema },
+      { name: Invite.name, schema: InviteSchema },
       { name: User.name, schema: UserSchema },
     ]),
   ],
