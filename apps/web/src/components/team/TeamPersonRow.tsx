@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Avatar, Box, Group, Paper, Text } from '@mantine/core';
 import { userFullName, type TeamMember } from '@migenda/shared';
 
@@ -11,9 +12,11 @@ type TeamPersonRowProps = {
   isYou?: boolean;
   /** Dims the row for someone who has not joined yet. */
   muted?: boolean;
+  /** Extra control on the right, for example Remove. */
+  action?: ReactNode;
 };
 
-export function TeamPersonRow({ person, label, isYou = false, muted = false }: TeamPersonRowProps) {
+export function TeamPersonRow({ person, label, isYou = false, muted = false, action }: TeamPersonRowProps) {
   const name = userFullName(person) || person.email;
 
   return (
@@ -33,9 +36,12 @@ export function TeamPersonRow({ person, label, isYou = false, muted = false }: T
             </Text>
           </Box>
         </Group>
-        <Text fz={12} className="whitespace-nowrap opacity-60">
-          {label}
-        </Text>
+        <Group gap={12} wrap="nowrap">
+          <Text fz={12} className="whitespace-nowrap opacity-60">
+            {label}
+          </Text>
+          {action}
+        </Group>
       </Group>
     </Paper>
   );

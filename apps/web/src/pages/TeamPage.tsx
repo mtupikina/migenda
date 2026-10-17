@@ -34,7 +34,12 @@ export function TeamPage() {
           {team.isSuccess && isOwner ? <TeamNameForm key={team.data.id} team={team.data} /> : null}
           {team.isSuccess && user ? (
             <Box>
-              <TeamMemberList members={team.data.members} pending={team.data.pending} viewerId={user.id} />
+              <TeamMemberList
+                members={team.data.members}
+                pending={team.data.pending}
+                viewerId={user.id}
+                canRemove={isOwner}
+              />
               {alone ? <TeamSoloHint /> : null}
             </Box>
           ) : null}

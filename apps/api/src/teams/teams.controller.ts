@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Team, TeamSummary } from '@migenda/shared';
 import { Request } from 'express';
 
@@ -47,6 +47,12 @@ export class TeamsController {
   async invite(@Req() req: Request, @Body() dto: InviteMemberDto): Promise<{ id: string }> {
     const { user, teamId } = await this.auth.resolveTeamScope(sessionId(req));
     return this.invites.invite(teamId, user, dto.email);
+  }
+
+  @Delete('me/members/:userId')
+  async remove(@Req() req: Request, @Param('userId') userId: string): Promise<Team> {
+    const { user, teamId } = await this.auth.resolveTeamScope(sessionId(req));
+    return this.membership.remove(user, teamId, userId);
   }
 
   @Post(':teamId/leave')

@@ -46,6 +46,11 @@ export async function leaveTeam(teamId: string): Promise<void> {
   await request(`/teams/${teamId}/leave`, { method: 'POST' }, 'Could not leave the team.');
 }
 
+export async function removeMember(userId: string): Promise<Team> {
+  const response = await request(`/teams/me/members/${userId}`, { method: 'DELETE' }, 'Could not remove this member.');
+  return response.json() as Promise<Team>;
+}
+
 export async function renameTeam(input: RenameTeamInput): Promise<Team> {
   const response = await request('/teams/me', json('PATCH', input), 'Could not rename the team.');
   return response.json() as Promise<Team>;
