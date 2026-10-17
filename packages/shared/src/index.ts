@@ -52,7 +52,26 @@ export {
   type PatchProfileInput,
   type UpdateProfileInput,
 } from './profile';
-export { REPORT_PERIODS, reportRangeSchema, type ReportPeriod, type ReportRange } from './report';
+export {
+  REPORT_FIRST_PAGE_SIZE,
+  REPORT_NEXT_PAGE_SIZE,
+  REPORT_PAGE_SIZE_MAX,
+  REPORT_PERIODS,
+  REPORT_RANGE_MAX_DAYS,
+  reportActivitySchema,
+  reportRangeSchema,
+  reportResponseSchema,
+  reportRowSchema,
+  reportStatusSchema,
+  reportSummarySchema,
+  type ReportActivity,
+  type ReportPeriod,
+  type ReportRange,
+  type ReportResponse,
+  type ReportRow,
+  type ReportStatus,
+  type ReportSummary,
+} from './report';
 export {
   SEARCH_QUERY_MAX,
   SEARCH_RESULT_MAX,

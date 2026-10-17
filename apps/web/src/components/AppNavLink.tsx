@@ -9,7 +9,7 @@ type AppNavLinkProps = {
 
 export function AppNavLink({ to, children }: AppNavLinkProps) {
   const { pathname } = useLocation();
-  const active = pathname === to;
+  const active = pathname === to || pathname.startsWith(`${to}/`);
 
   return (
     <Anchor

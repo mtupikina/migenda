@@ -9,12 +9,11 @@ import {
   Query,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 import { env } from '../env';
-import { OAUTH_STATE_COOKIE, SESSION_COOKIE } from './auth.constants';
+import { OAUTH_STATE_COOKIE } from './auth.constants';
 import {
   clearOAuthStateCookie,
   clearSessionCookie,
@@ -26,6 +25,7 @@ import { CompletePasswordResetDto } from './complete-password-reset.dto';
 import { ForgotPasswordDto } from './forgot-password.dto';
 import { LoginDto } from './login.dto';
 import { RegisterDto } from './register.dto';
+import { optionalSessionId, sessionId } from './session-id';
 import { buildAuthorizeUrl, fetchOAuthProfile, OAuthError } from './oauth';
 import type { OAuthProvider } from './oauth.types';
 
@@ -70,19 +70,14 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const sid = req.cookies?.[SESSION_COOKIE] as string | undefined;
-    await this.auth.logout(sid);
+    await this.auth.logout(optionalSessionId(req));
     clearSessionCookie(res);
     return { ok: true };
   }
 
   @Get('me')
   me(@Req() req: Request) {
-    const sid = req.cookies?.[SESSION_COOKIE];
-    if (!sid) {
-      throw new UnauthorizedException();
-    }
-    return this.auth.me(sid);
+    return this.auth.me(sessionId(req));
   }
 
   @Get('google')

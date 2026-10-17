@@ -6,12 +6,11 @@ import {
   Patch,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-import { SESSION_COOKIE } from '../auth/auth.constants';
 import { clearSessionCookie } from '../auth/auth.cookies';
+import { sessionId } from '../auth/session-id';
 import { PatchProfileDto } from './patch-profile.dto';
 import { ProfileService } from './profile.service';
 
@@ -32,12 +31,4 @@ export class ProfileController {
     clearSessionCookie(res);
     return { ok: true };
   }
-}
-
-function sessionId(req: Request) {
-  const sid = req.cookies?.[SESSION_COOKIE] as string | undefined;
-  if (!sid) {
-    throw new UnauthorizedException();
-  }
-  return sid;
 }

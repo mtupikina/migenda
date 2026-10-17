@@ -14,6 +14,9 @@ export class EventException {
   @Prop({ required: true })
   completed!: boolean;
 
+  @Prop({ type: Date, default: null })
+  completedAt?: Date | null;
+
   @Prop({ default: false })
   deleted!: boolean;
 

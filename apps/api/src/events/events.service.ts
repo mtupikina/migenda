@@ -19,6 +19,7 @@ import {
   type Occurrence,
 } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
+import { displayName } from '../auth/display-name';
 import { UserDocument } from '../auth/user.schema';
 import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventNoteDto } from './create-event-note.dto';
@@ -31,9 +32,11 @@ import { EventException, EventExceptionDocument } from './event-exception.schema
 import { EventNote, EventNoteDocument } from './event-note.schema';
 import { assertSchedule, assertTimeZone, uniqueWeekdays } from './event-rules';
 import { CalendarEvent, CalendarEventDocument } from './event.schema';
+import { toEventType } from './event-type-dto';
 import { EventType, EventTypeDocument } from './event-type.schema';
 import { containsInstant, expandEvent, ruleFrom, ruleOf, type EventRule } from './expand-event';
 import { MoveEventDto } from './move-event.dto';
+import { startsInWindow } from './occurrence-window';
 import { collectOccurrences } from './place-occurrence';
 import { TimeBlock, TimeBlockDocument } from './time-block.schema';
 import { UpdateEventDto } from './update-event.dto';
@@ -61,13 +64,7 @@ export class EventsService {
 
     const [rules, typeDocs, blockDocs] = await Promise.all([
       this.events
-        .find({
-          assigneeId: user._id,
-          $or: [
-            { weekdays: { $size: 0 }, start: { $gte: from, $lt: to } },
-            { 'weekdays.0': { $exists: true }, start: { $lt: to } },
-          ],
-        })
+        .find({ assigneeId: user._id, ...startsInWindow(from, to) })
         .exec(),
       this.typesOf(user),
       this.timeBlocks.find({ userId: user._id, start: { $lt: to }, end: { $gt: from } }).exec(),
@@ -179,7 +176,7 @@ export class EventsService {
       eventId: event._id,
       occurrenceStart: start,
       authorId: user._id,
-      authorName: noteAuthorName(user),
+      authorName: displayName(user),
       text: dto.text,
     });
     return toEventNote(note);
@@ -251,9 +248,13 @@ export class EventsService {
       throw new BadRequestException('Enter a valid date');
     }
     const start = await this.resolveOccurrenceKey(event, instant);
+    const existing = await this.exceptions.findOne({ eventId: event._id, occurrenceStart: start }).exec();
+    if (existing?.completed) {
+      return { completed: true };
+    }
     await this.exceptions.updateOne(
       { eventId: event._id, occurrenceStart: start },
-      { $set: { completed: true } },
+      { $set: { completed: true, completedAt: new Date() } },
       { upsert: true },
     );
     return { completed: true };
@@ -621,7 +622,7 @@ export class EventsService {
     if (exception?.completed) {
       await this.exceptions.updateOne(
         { eventId: created._id, occurrenceStart: fields.start },
-        { $set: { completed: true } },
+        { $set: { completed: true, completedAt: exception.completedAt ?? null } },
         { upsert: true },
       );
     }
@@ -765,7 +766,7 @@ export class EventsService {
       }
       await this.exceptions.updateOne(
         { eventId: created._id, occurrenceStart: next },
-        { $set: { completed: true } },
+        { $set: { completed: true, completedAt: entry.completedAt ?? null } },
         { upsert: true },
       );
     }
@@ -825,14 +826,6 @@ export class EventsService {
   }
 }
 
-function noteAuthorName(user: UserDocument): string {
-  const name = userFullName(user);
-  if (name) {
-    return name;
-  }
-  return user.email;
-}
-
 function toEventNote(note: EventNoteDocument): EventNoteDto {
   return {
     id: String(note._id),
@@ -866,14 +859,6 @@ function toEventDetail(event: CalendarEventDocument): EventDetail {
     until: event.until,
     timeZone: event.timeZone,
     assigneeId: String(event.assigneeId),
-  };
-}
-
-function toEventType(type: EventTypeDocument): EventTypeDto {
-  return {
-    id: String(type._id),
-    name: type.name,
-    color: type.color,
   };
 }
 

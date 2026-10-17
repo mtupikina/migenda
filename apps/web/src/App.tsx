@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { CalendarPage } from './pages/CalendarPage';
 import { CreateAccountPage } from './pages/CreateAccountPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { GeneratedReportPage } from './pages/GeneratedReportPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordConfirmPage } from './pages/ResetPasswordConfirmPage';
@@ -29,7 +30,7 @@ export function App() {
       <Route path="/calendar/month/:date" element={<CalendarPage view="month" />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/reports/generated" element={<AppRouteStubPage />} />
+      <Route path="/reports/generated" element={<GeneratedReportPage />} />
       <Route path="/team" element={<AppRouteStubPage />} />
       <Route path="/profile" element={<ProfilePage />} />
     </Routes>

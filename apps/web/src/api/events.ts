@@ -208,7 +208,7 @@ export async function deleteTimeBlock(blockId: string): Promise<void> {
   }
 }
 
-async function errorMessage(response: Response, fallback: string): Promise<string> {
+export async function errorMessage(response: Response, fallback: string): Promise<string> {
   const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
   if (typeof body?.message === 'string') {
     return body.message;

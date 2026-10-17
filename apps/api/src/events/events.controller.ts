@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 
-import { SESSION_COOKIE } from '../auth/auth.constants';
+import { sessionId } from '../auth/session-id';
 import { CompleteEventDto } from './complete-event.dto';
 import { CreateEventNoteDto } from './create-event-note.dto';
 import { CreateEventDto } from './create-event.dto';
@@ -106,12 +106,3 @@ export class EventsController {
     return this.events.deleteTimeBlock(sessionId(req), blockId);
   }
 }
-
-function sessionId(req: Request): string {
-  const sid = req.cookies?.[SESSION_COOKIE] as string | undefined;
-  if (!sid) {
-    throw new UnauthorizedException();
-  }
-  return sid;
-}
-

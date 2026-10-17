@@ -92,6 +92,6 @@ function pushPlaced(
   });
 }
 
-function exceptionKey(eventId: string, start: Date): string {
+export function exceptionKey(eventId: string, start: Date): string {
   return `${eventId}:${start.toISOString()}`;
 }

@@ -8,6 +8,19 @@ cp apps/api/.env.example apps/api/.env
 pnpm dev
 ```
 
+### Local database (MongoDB)
+
+The API needs MongoDB on `127.0.0.1:27017` (`MONGODB_URI` in `apps/api/.env`). Start it in a separate terminal **before** `pnpm dev`, from the repo root, and leave it running:
+
+```bash
+mkdir -p .data/mongo
+mongod --dbpath .data/mongo --bind_ip 127.0.0.1 --port 27017
+```
+
+Data is stored in `.data/mongo` (git-ignored). If the API logs `ECONNREFUSED 127.0.0.1:27017`, Mongo is not running.
+
+To run it in the background instead, add `--logpath .data/mongod.log --fork`.
+
 - Web: http://localhost:5173 (React Router owns all paths except `/api/*`)
 - API: http://localhost:3000/api — e.g. `GET /api/auth/me`
 
