@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Team, TeamSummary } from '@migenda/shared';
 import { Request } from 'express';
 
@@ -6,6 +6,7 @@ import { AuthService } from '../auth/auth.service';
 import { sessionId } from '../auth/session-id';
 import { InviteMemberDto } from './invite-member.dto';
 import { InvitesService } from './invites.service';
+import { TeamMembershipService } from './team-membership.service';
 import { TeamNameDto } from './team-name.dto';
 import { TeamsService } from './teams.service';
 
@@ -14,6 +15,7 @@ export class TeamsController {
   constructor(
     private readonly auth: AuthService,
     private readonly teams: TeamsService,
+    private readonly membership: TeamMembershipService,
     private readonly invites: InvitesService,
   ) {}
 
@@ -45,5 +47,11 @@ export class TeamsController {
   async invite(@Req() req: Request, @Body() dto: InviteMemberDto): Promise<{ id: string }> {
     const { user, teamId } = await this.auth.resolveTeamScope(sessionId(req));
     return this.invites.invite(teamId, user, dto.email);
+  }
+
+  @Post(':teamId/leave')
+  async leave(@Req() req: Request, @Param('teamId') teamId: string): Promise<void> {
+    const user = await this.auth.resolveUserFromSession(sessionId(req));
+    await this.membership.leave(user, teamId);
   }
 }

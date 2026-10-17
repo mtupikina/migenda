@@ -8,9 +8,8 @@ import { Invite, InviteDocument } from './invite.schema';
 import { Membership, MembershipDocument } from './membership.schema';
 import { personalTeamName } from './personal-team-name';
 import { toTeam, toTeamSummary, type MemberRecord, type PendingRecord } from './team-dto';
+import { NOT_A_MEMBER } from './team-errors';
 import { Team, TeamDocument } from './team.schema';
-
-const NOT_A_MEMBER = 'You are not a member of this team';
 
 @Injectable()
 export class TeamsService {
@@ -26,8 +25,13 @@ export class TeamsService {
    * so every caller can rely on one existing.
    */
   async ensureActiveTeam(user: UserDocument): Promise<Types.ObjectId> {
-    if (user.activeTeamId) {
+    if (user.activeTeamId && (await this.isMember(user.activeTeamId, user._id))) {
       return user.activeTeamId;
+    }
+    const fallback = await this.fallbackTeam(user._id);
+    if (fallback) {
+      await this.activate(user, fallback);
+      return fallback;
     }
     return this.createPersonalTeam(user);
   }
@@ -137,6 +141,17 @@ export class TeamsService {
       .sort({ firstName: 1, lastName: 1 })
       .exec();
     return users.map((user) => ({ user, role: roleByUser.get(String(user._id)) ?? 'member' }));
+  }
+
+  /** Another team the user belongs to, preferring one they own. `except` is skipped when set. */
+  async fallbackTeam(userId: Types.ObjectId, except?: Types.ObjectId): Promise<Types.ObjectId | null> {
+    const notLeft = except ? { teamId: { $ne: except } } : {};
+    const owned = await this.memberships.findOne({ userId, role: 'owner', ...notLeft }).exec();
+    if (owned) {
+      return owned.teamId;
+    }
+    const any = await this.memberships.findOne({ userId, ...notLeft }).exec();
+    return any?.teamId ?? null;
   }
 
   private createPersonalTeam(user: UserDocument): Promise<Types.ObjectId> {

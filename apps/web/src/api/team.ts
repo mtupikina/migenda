@@ -42,6 +42,10 @@ export async function switchTeam(teamId: string): Promise<Team> {
   return response.json() as Promise<Team>;
 }
 
+export async function leaveTeam(teamId: string): Promise<void> {
+  await request(`/teams/${teamId}/leave`, { method: 'POST' }, 'Could not leave the team.');
+}
+
 export async function renameTeam(input: RenameTeamInput): Promise<Team> {
   const response = await request('/teams/me', json('PATCH', input), 'Could not rename the team.');
   return response.json() as Promise<Team>;

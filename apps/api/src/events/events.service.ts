@@ -21,6 +21,7 @@ import {
   type Occurrence,
 } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
+import { isDuplicateKeyError } from '../mongo-errors';
 import { displayName } from '../auth/display-name';
 import { UserDocument } from '../auth/user.schema';
 import { TeamsService } from '../teams/teams.service';
@@ -355,12 +356,19 @@ export class EventsService {
       throw new ConflictException('A type with this name already exists');
     }
 
-    const created = await this.types.create({
-      teamId,
-      name: dto.name,
-      color: dto.color,
-    });
-    return toEventType(created);
+    try {
+      const created = await this.types.create({
+        teamId,
+        name: dto.name,
+        color: dto.color,
+      });
+      return toEventType(created);
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ConflictException('A type with this name already exists');
+      }
+      throw error;
+    }
   }
 
   async createTimeBlock(sid: string, dto: CreateTimeBlockDto): Promise<{ id: string }> {
