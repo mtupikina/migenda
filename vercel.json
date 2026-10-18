@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "corepack enable && pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @migenda/web build",
+  "buildCommand": "pnpm --filter @migenda/shared build && pnpm --filter @migenda/web build",
   "outputDirectory": "apps/web/dist",
   "ignoreCommand": "exit 0",
   "rewrites": [

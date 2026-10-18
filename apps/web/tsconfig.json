@@ -6,7 +6,10 @@
     "jsx": "react-jsx",
     "noEmit": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@migenda/shared": ["./../../packages/shared/src/index.ts"]
+    }
   },
   "include": ["src"]
 }
