@@ -90,5 +90,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: npm install --global vercel@latest
       - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Use repo Vercel build settings
+        run: |
+          node -e '
+            const fs = require("fs");
+            const file = ".vercel/project.json";
+            const project = JSON.parse(fs.readFileSync(file, "utf8"));
+            const key = project.settings ? "settings" : "projectSettings";
+            project[key] = project[key] ?? {};
+            project[key].outputDirectory = "dist";
+            project[key].rootDirectory = null;
+            project[key].buildCommand =
+              "pnpm --filter @migenda/shared build && pnpm --filter @migenda/web build";
+            fs.writeFileSync(file, JSON.stringify(project, null, 2));
+          '
       - run: vercel build --prod --token="$VERCEL_TOKEN"
       - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

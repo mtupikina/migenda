@@ -16,6 +16,10 @@ export default defineConfig({
       '@migenda/shared': path.resolve(appDir, '../../packages/shared/src/index.ts'),
     },
   },
+  build: {
+    outDir: path.resolve(appDir, '../../dist'),
+    emptyOutDir: true,
+  },
   server: {
     port: 5173,
     proxy: {
