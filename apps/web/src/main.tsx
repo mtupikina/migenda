@@ -5,6 +5,7 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { App } from './App';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { cssVariablesResolver, theme } from './theme';
 import './index.css';
 
@@ -20,7 +21,9 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
         <BrowserRouter>
-          <App />
+          <AppErrorBoundary>
+            <App />
+          </AppErrorBoundary>
         </BrowserRouter>
       </MantineProvider>
     </QueryClientProvider>

@@ -12,6 +12,7 @@ import { ResetPasswordConfirmPage } from './pages/ResetPasswordConfirmPage';
 import { SearchPage } from './pages/SearchPage';
 import { TeamPage } from './pages/TeamPage';
 import { LogoutPage } from './pages/LogoutPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -37,6 +38,7 @@ export function App() {
       <Route path="/reports/generated" element={<GeneratedReportPage />} />
       <Route path="/team" element={<TeamPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
