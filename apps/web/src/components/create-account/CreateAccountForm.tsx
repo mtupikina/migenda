@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { createAccountSchema, type CreateAccountInput } from '@migenda/shared';
 import { RegisterError, register as registerAccount } from '../../api/auth';
@@ -25,10 +25,12 @@ function registerMessage(error: unknown) {
 
 export function CreateAccountForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const mutation = useMutation({
     mutationFn: registerAccount,
-    onSuccess: () => {
+    onSuccess: (user) => {
+      queryClient.setQueryData(['auth', 'me'], user);
       void navigate('/get-started');
     },
   });

@@ -5,6 +5,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { CreateAccountPage } from './pages/CreateAccountPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GeneratedReportPage } from './pages/GeneratedReportPage';
+import { GetStartedPage } from './pages/GetStartedPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordConfirmPage } from './pages/ResetPasswordConfirmPage';
@@ -21,7 +22,7 @@ export function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/create-account" element={<CreateAccountPage />} />
-      <Route path="/get-started" element={null} />
+      <Route path="/get-started" element={<GetStartedPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/reset-password/confirm" element={<ResetPasswordConfirmPage />} />
       <Route path="/logout" element={<LogoutPage />} />
