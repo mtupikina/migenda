@@ -12,3 +12,4 @@ coverage
 .data
 .tmp
 .pnpm-store
+.vercel

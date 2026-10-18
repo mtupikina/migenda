@@ -24,7 +24,7 @@ To run it in the background instead, add `--logpath .data/mongod.log --fork`.
 - Web: http://localhost:5173 (React Router owns all paths except `/api/*`)
 - API: http://localhost:3000/api — e.g. `GET /api/auth/me`
 
-In dev, Vite proxies `/api` to the Nest server. In production, serve the SPA for app routes and reverse-proxy `/api` to Nest the same way.
+In dev, Vite proxies `/api` to the Nest server. In production, Vercel serves the SPA and rewrites `/api/*` to the Render API. A merge to `main` runs GitHub Actions: lint/build, copy secrets onto Render, deploy the API, then deploy the web app. Do not commit `apps/api/.env`.
 
 OAuth redirect URIs (Google/GitHub apps) must use **`{WEB_ORIGIN}/api/auth/{google|github}/callback`** (e.g. `http://localhost:5173/api/auth/google/callback`).
 
