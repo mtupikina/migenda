@@ -110,3 +110,4 @@ export {
   type SearchNoteHit,
   type SearchResponse,
 } from './search';
+export { publicStatsSchema, type PublicStats } from './stats';

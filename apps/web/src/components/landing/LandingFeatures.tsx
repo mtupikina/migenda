@@ -6,18 +6,18 @@ import { FeatureRow } from './FeatureRow';
 const FEATURES = [
   {
     index: '01',
-    title: 'One calendar, every team',
-    copy: "Shifts, meetings and deadlines live side by side. Nobody schedules an all-hands over the warehouse's night shift again.",
+    title: 'One calendar for the team',
+    copy: "Invite people to a team and look at your own events or everyone's. Types you create — with a name and a color — sit on the same day, week, and month grid.",
   },
   {
     index: '02',
-    title: 'Conflicts, caught early',
-    copy: "MiGenda flags overlaps and coverage gaps the moment they're proposed — before they're a headache for someone at 6am.",
+    title: 'Overlaps, blocked early',
+    copy: "When you add, move, or block time, MiGenda checks that person's calendar. A clash is refused before it is saved — or a repeating series skips the days that are already taken.",
   },
   {
     index: '03',
-    title: 'Built for every device',
-    copy: "Check the schedule from the floor, the desk, or the road. Changes sync everywhere the moment they're made.",
+    title: 'Notes, search, and reports',
+    copy: 'Leave a note on an event, find it later with search, and run a report on a type you created — scheduled, completed, and upcoming work for the period you pick.',
   },
 ] as const;
 

@@ -1,28 +1,27 @@
 import { SimpleGrid } from '@mantine/core';
 
+import { usePublicStats } from '../../hooks/usePublicStats';
 import { Rule } from '../Rule';
+import { formatRoundedCount } from './formatRoundedCount';
 import { StatItem } from './StatItem';
 
-// TODO: Rework when Team/Event models and a public stats API exist. Values must
-// come from the database (team count, monthly shifts, double-bookings). Uptime
-// is not defined as a Mongo field. Do not restore prototype figures from
-// Landing Page.dc.html.
-const STATS: readonly { value: string; label: string }[] = [
-  { value: '40,000+', label: 'Teams scheduling with MiGenda' },
-  { value: '2.1M', label: 'Shifts scheduled monthly' },
-  { value: '99.9%', label: 'Uptime, every quarter' },
-  { value: '0', label: 'Double-bookings, if you let us' },
-];
-
 export function LandingStats() {
-  if (STATS.length === 0) {
+  const stats = usePublicStats();
+  if (!stats.data) {
     return null;
   }
+
+  const items = [
+    { value: formatRoundedCount(stats.data.teams), label: 'Teams on MiGenda' },
+    { value: formatRoundedCount(stats.data.people), label: 'People using MiGenda' },
+    { value: formatRoundedCount(stats.data.events), label: 'Events on the calendar' },
+    { value: formatRoundedCount(stats.data.notes), label: 'Notes on events' },
+  ];
 
   return (
     <>
       <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing={42} py={70} aria-label="MiGenda, by the numbers">
-        {STATS.map((stat) => (
+        {items.map((stat) => (
           <StatItem key={stat.label} value={stat.value} label={stat.label} />
         ))}
       </SimpleGrid>

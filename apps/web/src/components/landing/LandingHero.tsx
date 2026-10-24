@@ -23,8 +23,8 @@ export function LandingHero({ visitor }: { visitor: LandingVisitor }) {
           the same clock.
         </Title>
         <Text fz={17} lh="28px" maw="58ch" mt={40} opacity={0.78}>
-          MiGenda is the schedule of record for your whole organization — shifts, meetings and
-          deadlines in one calendar, with conflicts caught before they happen.
+          MiGenda is a shared calendar for your team. You create event types, assign events to
+          people, and a second event is blocked when that person is already busy.
         </Text>
         <Group gap={12} mt={28}>
           {showGuest ? (

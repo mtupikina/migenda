@@ -6,6 +6,7 @@ import { env } from './env';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { ReportsModule } from './reports/reports.module';
+import { StatsModule } from './stats/stats.module';
 import { TeamsApiModule } from './teams/teams-api.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { TeamsApiModule } from './teams/teams-api.module';
     EventsModule,
     HealthModule,
     ReportsModule,
+    StatsModule,
     TeamsApiModule,
   ],
 })

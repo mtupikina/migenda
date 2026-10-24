@@ -12,10 +12,10 @@ export type BoardEvent = {
 };
 
 export const BOARD_EVENTS: readonly BoardEvent[] = [
-  { col: 0, row: 0, rows: 2, label: 'Coffee Time', tone: 'ink' },
-  { col: 1, row: 1, rows: 3, label: 'Floor shift', tone: 'ink' },
-  { col: 2, row: 0, rows: 3, label: 'Conflict — review', tone: 'accent' },
-  { col: 3, row: 2, rows: 3, label: 'Client call', tone: 'ink' },
-  { col: 4, row: 1, rows: 2, label: 'Warehouse', tone: 'ink' },
-  { col: 5, row: 0, rows: 2, label: 'Open', tone: 'open' },
+  { col: 0, row: 0, rows: 2, label: 'Standup', tone: 'ink' },
+  { col: 1, row: 1, rows: 3, label: 'Client call', tone: 'ink' },
+  { col: 2, row: 0, rows: 3, label: '1:1', tone: 'accent' },
+  { col: 3, row: 2, rows: 3, label: 'Planning', tone: 'ink' },
+  { col: 4, row: 1, rows: 2, label: 'Focus time', tone: 'ink' },
+  { col: 5, row: 0, rows: 2, label: 'Blocked', tone: 'open' },
 ];
