@@ -12,10 +12,10 @@ function baseCookie(): CookieOptions {
   };
 }
 
-export function setSessionCookie(res: Response, sid: string, maxAge?: number) {
+export function setSessionCookie(res: Response, sid: string, maxAge: number) {
   res.cookie(SESSION_COOKIE, sid, {
     ...baseCookie(),
-    ...(maxAge ? { maxAge } : {}),
+    maxAge,
   });
 }
 

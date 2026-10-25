@@ -62,7 +62,7 @@ export class AuthService {
     }
 
     await this.teams.ensureActiveTeam(user);
-    return this.createSession(user, undefined);
+    return this.createSession(user);
   }
 
   async login(dto: LoginDto) {
@@ -73,7 +73,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.createSession(user, dto.rememberMe === true ? REMEMBER_ME_MS : undefined);
+    const maxAge = dto.rememberMe === true ? REMEMBER_ME_MS : SESSION_MS;
+    return this.createSession(user, maxAge);
   }
 
   async loginWithOAuth(profile: OAuthProfile) {
@@ -190,9 +191,9 @@ export class AuthService {
       .exec();
   }
 
-  private async createSession(user: UserDocument, maxAge?: number) {
+  private async createSession(user: UserDocument, maxAge: number = SESSION_MS) {
     const sid = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + (maxAge ?? SESSION_MS));
+    const expiresAt = new Date(Date.now() + maxAge);
     await this.sessions.create({ sid, userId: user._id, expiresAt });
     return { user: toAuthUser(user), sid, maxAge };
   }
