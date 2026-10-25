@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { SCHEDULE_VIEW_ME } from '@migenda/shared';
+import { SCHEDULE_VIEW_ALL } from '@migenda/shared';
 
 import { assigneeLabeler, type AssigneeLabel } from '../schedule/assigneeLabeler';
 
@@ -12,9 +12,9 @@ export type ScheduleViewing = {
 };
 
 export const ScheduleViewingContext = createContext<ScheduleViewing>({
-  viewing: SCHEDULE_VIEW_ME,
+  viewing: SCHEDULE_VIEW_ALL,
   setViewing: () => undefined,
-  assigneeLabel: assigneeLabeler(SCHEDULE_VIEW_ME, []),
+  assigneeLabel: assigneeLabeler(SCHEDULE_VIEW_ALL, []),
 });
 
 export function useScheduleViewing(): ScheduleViewing {

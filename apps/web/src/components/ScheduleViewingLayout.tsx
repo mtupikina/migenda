@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { SCHEDULE_VIEW_ME } from '@migenda/shared';
+import { SCHEDULE_VIEW_ALL } from '@migenda/shared';
 
 import { ScheduleViewingContext } from '../hooks/useScheduleViewing';
 import { useSession } from '../hooks/useSession';
@@ -9,14 +9,14 @@ import { assigneeLabeler } from '../schedule/assigneeLabeler';
 
 /**
  * Remembers whose events the schedule shows, so the Schedule page and the calendar agree.
- * The choice belongs to one team: switching teams puts it back to "me".
+ * The choice belongs to one team: switching teams puts it back to "everyone".
  */
 export function ScheduleViewingLayout() {
   const { data: user } = useSession();
   const team = useTeam(Boolean(user));
-  const [choice, setChoice] = useState({ teamId: '', viewing: SCHEDULE_VIEW_ME });
+  const [choice, setChoice] = useState({ teamId: '', viewing: SCHEDULE_VIEW_ALL });
   const teamId = team.data?.id ?? '';
-  const viewing = choice.teamId === teamId ? choice.viewing : SCHEDULE_VIEW_ME;
+  const viewing = choice.teamId === teamId ? choice.viewing : SCHEDULE_VIEW_ALL;
   const setViewing = useCallback((next: string) => setChoice({ teamId, viewing: next }), [teamId]);
   const members = team.data?.members;
   const value = useMemo(

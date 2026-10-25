@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { SCHEDULE_VIEW_ME } from '@migenda/shared';
+import { SCHEDULE_VIEW_ALL } from '@migenda/shared';
 
 import { fetchDashboard } from '../api/events';
 import type { DashboardRange } from '../schedule/dashboardRange';
 
-/** `viewing` is whose events to load: `me` (the default), `all`, or a teammate's id. */
-export function useDashboard(range: DashboardRange | null, enabled: boolean, viewing: string = SCHEDULE_VIEW_ME) {
+/** `viewing` is whose events to load: `all` (the default), `me`, or a teammate's id. */
+export function useDashboard(range: DashboardRange | null, enabled: boolean, viewing: string = SCHEDULE_VIEW_ALL) {
   return useQuery({
     queryKey: ['dashboard', range?.from, range?.to, viewing],
     queryFn: () => {

@@ -1,5 +1,5 @@
 import {
-  SCHEDULE_VIEW_ME,
+  SCHEDULE_VIEW_ALL,
   type CreateEventInput,
   type CreateEventTypeInput,
   type CreateTimeBlockInput,
@@ -21,10 +21,10 @@ export class ScheduleRequestError extends Error {
   }
 }
 
-/** `viewing` is whose events to load: `me` (the default), `all`, or a teammate's id. */
+/** `viewing` is whose events to load: `all` (the default), `me`, or a teammate's id. */
 export async function fetchDashboard(
   range: DashboardRange = dashboardRange(new Date()),
-  viewing: string = SCHEDULE_VIEW_ME,
+  viewing: string = SCHEDULE_VIEW_ALL,
 ): Promise<Dashboard> {
   const params = new URLSearchParams({ from: range.from, to: range.to, assignee: viewing });
   const response = await fetch(apiPath(`/dashboard?${params.toString()}`), {
