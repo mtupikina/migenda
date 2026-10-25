@@ -1,7 +1,7 @@
 export const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 export const TIMES = ['08:00', '10:00', '12:00', '14:00', '16:00'] as const;
 
-export type BoardEventTone = 'ink' | 'accent' | 'open';
+type BoardEventTone = 'ink' | 'accent' | 'open';
 
 export type BoardEvent = {
   col: number;

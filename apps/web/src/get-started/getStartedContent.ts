@@ -1,6 +1,6 @@
 import type { EventType } from '@migenda/shared';
 
-export type GetStartedCardKind = 'schedule' | 'notes' | 'team' | 'reports';
+type GetStartedCardKind = 'schedule' | 'notes' | 'team' | 'reports';
 
 export type GetStartedCard = {
   kind: GetStartedCardKind;

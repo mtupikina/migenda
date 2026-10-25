@@ -14,7 +14,7 @@ export type PendingRecord = {
   inviteId: string;
 };
 
-export function toTeamMember({ user, role }: MemberRecord): TeamMember {
+function toTeamMember({ user, role }: MemberRecord): TeamMember {
   return {
     id: String(user._id),
     firstName: user.firstName,
@@ -26,7 +26,7 @@ export function toTeamMember({ user, role }: MemberRecord): TeamMember {
   };
 }
 
-export function toPendingMember({ user, inviteId }: PendingRecord): PendingMember {
+function toPendingMember({ user, inviteId }: PendingRecord): PendingMember {
   return {
     id: inviteId,
     firstName: user.firstName,
@@ -41,7 +41,7 @@ export function toTeamSummary(team: TeamDocument, role: TeamRole, active: boolea
 }
 
 /** The owner comes first, everyone else keeps the order they were given. */
-export function ownerFirst(members: MemberRecord[]): MemberRecord[] {
+function ownerFirst(members: MemberRecord[]): MemberRecord[] {
   return [...members].sort((a, b) => Number(b.role === 'owner') - Number(a.role === 'owner'));
 }
 

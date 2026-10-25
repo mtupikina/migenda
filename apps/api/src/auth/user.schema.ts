@@ -13,7 +13,7 @@ export class NotificationPreferences {
   weeklySummaryDigest!: boolean;
 }
 
-export const NotificationPreferencesSchema =
+const NotificationPreferencesSchema =
   SchemaFactory.createForClass(NotificationPreferences);
 
 export type UserDocument = HydratedDocument<User>;

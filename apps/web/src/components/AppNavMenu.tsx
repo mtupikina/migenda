@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Tag, User, Users } from 'lucide-react';
-import { Box, Burger, Drawer, Stack, Text } from '@mantine/core';
+import { Box, Burger, Button, Drawer, Stack, Text } from '@mantine/core';
 
 import { appNavDrawerClassNames, dashboardKickerClassName } from '../classNames/shared';
 import { AppNavDrawerLink } from './AppNavDrawerLink';
-import { LogOutNavLink } from './LogOutNavLink';
 import { TeamSwitcher } from './TeamSwitcher';
 
 const secondaryRoutes = [
@@ -50,10 +50,10 @@ export function AppNavMenu() {
             className="border-t-2 border-[color-mix(in_srgb,#201e1d_28%,transparent)] bg-[color-mix(in_srgb,#201e1d_3%,transparent)]"
           >
             <Text className={`${dashboardKickerClassName} mb-3`}>Team</Text>
-            <TeamSwitcher block />
-            <Box mt={16}>
-              <LogOutNavLink fullWidth />
-            </Box>
+            <TeamSwitcher />
+            <Button component={Link} to="/logout" variant="default" fz={14} className="mt-4 w-full">
+              Log out
+            </Button>
           </Box>
         </Stack>
       </Drawer>

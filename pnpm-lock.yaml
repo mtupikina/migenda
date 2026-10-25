@@ -37,9 +37,6 @@ importers:
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
-      date-fns:
-        specifier: ^4.4.0
-        version: 4.4.0
       mongoose:
         specifier: ^8.16.1
         version: 8.24.4

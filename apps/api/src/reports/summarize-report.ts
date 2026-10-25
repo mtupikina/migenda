@@ -1,6 +1,6 @@
 import type { ReportActivity, ReportRow, ReportSummary } from '@migenda/shared';
 
-export function completionRate(completed: number, notCompleted: number): number | null {
+function completionRate(completed: number, notCompleted: number): number | null {
   const finished = completed + notCompleted;
   if (finished === 0) {
     return null;

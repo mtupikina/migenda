@@ -10,12 +10,8 @@ import { useTeamInvites } from '../hooks/useTeamInvites';
 import { useTeams } from '../hooks/useTeams';
 import { TeamSwitcherItem } from './TeamSwitcherItem';
 
-type TeamSwitcherProps = {
-  block?: boolean;
-};
-
 /** Lists the user's teams. Picking one makes it the team every screen shows. */
-export function TeamSwitcher({ block = false }: TeamSwitcherProps) {
+export function TeamSwitcher() {
   const queryClient = useQueryClient();
   const { data: user } = useSession();
   const teams = useTeams(Boolean(user));
@@ -31,10 +27,8 @@ export function TeamSwitcher({ block = false }: TeamSwitcherProps) {
     return null;
   }
 
-  const menuWidth = block ? 'target' : 240;
-
   return (
-    <Menu position={block ? 'bottom-start' : 'bottom-end'} width={menuWidth}>
+    <Menu position="bottom-start" width="target">
       <Menu.Target>
         <Button
           variant="default"
@@ -42,7 +36,7 @@ export function TeamSwitcher({ block = false }: TeamSwitcherProps) {
           loading={mutation.isPending}
           rightSection={<ChevronDown size={14} aria-hidden />}
           aria-label={`Team: ${active.name}. Switch team`}
-          className={block ? 'w-full max-w-none' : 'max-w-56'}
+          className="w-full max-w-none"
         >
           {active.name}
         </Button>

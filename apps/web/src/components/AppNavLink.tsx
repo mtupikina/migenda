@@ -5,11 +5,10 @@ import { Anchor } from '@mantine/core';
 type AppNavLinkProps = {
   to: string;
   children: ReactNode;
-  onClick?: () => void;
   activePrefix?: string;
 };
 
-export function AppNavLink({ to, children, onClick, activePrefix }: AppNavLinkProps) {
+export function AppNavLink({ to, children, activePrefix }: AppNavLinkProps) {
   const { pathname } = useLocation();
   const prefix = activePrefix ?? to;
   const active = pathname === prefix || pathname.startsWith(`${prefix}/`);
@@ -22,7 +21,6 @@ export function AppNavLink({ to, children, onClick, activePrefix }: AppNavLinkPr
       fz={{ base: 13, sm: 14 }}
       fw={active ? 600 : undefined}
       className="hover:text-body"
-      onClick={onClick}
     >
       {children}
     </Anchor>

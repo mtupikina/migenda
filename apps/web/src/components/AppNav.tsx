@@ -10,7 +10,7 @@ export function AppNav() {
 
   return (
     <Nav aria-label="App">
-      <Group gap={{ base: 8, sm: 20 }} ml="auto" wrap="nowrap" align="center">
+      <Group gap={0} ml="auto" wrap="nowrap" align="center" className="gap-2 sm:gap-5">
         <AppNavLink to="/dashboard">Schedule</AppNavLink>
         <AppNavLink to={calendarToday} activePrefix="/calendar">
           Calendar

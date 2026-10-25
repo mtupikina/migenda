@@ -11,11 +11,11 @@ export class OAuthError extends Error {
   }
 }
 
-export function oauthCallbackUrl(provider: OAuthProvider) {
+function oauthCallbackUrl(provider: OAuthProvider) {
   return `${env.webOrigin}/api/auth/${provider}/callback`;
 }
 
-export function isOAuthConfigured(provider: OAuthProvider) {
+function isOAuthConfigured(provider: OAuthProvider) {
   if (provider === 'google') {
     return Boolean(env.googleClientId && env.googleClientSecret);
   }

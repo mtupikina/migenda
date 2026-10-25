@@ -13,10 +13,11 @@ export function Nav({ children, 'aria-label': ariaLabel }: NavProps) {
   return (
     <Group
       component="nav"
-      gap={{ base: 8, sm: 24 }}
+      gap={0}
       px={{ base: 16, sm: 72 }}
       py="md"
       wrap="nowrap"
+      className="gap-2 sm:gap-6"
       style={{ borderBottom: rule }}
       aria-label={ariaLabel}
     >
