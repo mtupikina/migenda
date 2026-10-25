@@ -96,6 +96,16 @@ export class EventsController {
     return this.events.createType(sessionId(req), dto);
   }
 
+  @Patch('event-types/:typeId')
+  updateType(@Req() req: Request, @Param('typeId') typeId: string, @Body() dto: CreateEventTypeDto) {
+    return this.events.updateType(sessionId(req), typeId, dto);
+  }
+
+  @Post('event-types/:typeId/delete')
+  deleteType(@Req() req: Request, @Param('typeId') typeId: string) {
+    return this.events.deleteType(sessionId(req), typeId);
+  }
+
   @Post('time-blocks')
   createTimeBlock(@Req() req: Request, @Body() dto: CreateTimeBlockDto) {
     return this.events.createTimeBlock(sessionId(req), dto);

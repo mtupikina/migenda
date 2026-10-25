@@ -1,13 +1,12 @@
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createEventTypeSchema, EVENT_TYPE_COLORS, type CreateEventTypeInput } from '@migenda/shared';
 
 import { createEventType, ScheduleRequestError } from '../../api/events';
 import { invalidateSchedule } from '../../api/invalidateSchedule';
-import { dashboardFieldClassNames } from '../../classNames/shared';
-import { EventTypeColorPicker } from './EventTypeColorPicker';
+import { EventTypeFields } from '../event-types/EventTypeFields';
 
 type CreateEventTypeFormProps = {
   onCreated: (typeId: string) => void;
@@ -34,30 +33,7 @@ export function CreateEventTypeForm({ onCreated, onCancel }: CreateEventTypeForm
   return (
     <form noValidate onSubmit={handleSubmit((values) => mutation.mutate(values))}>
       <Stack gap={16}>
-        <TextInput
-          label="Name"
-          placeholder="e.g. Field trip"
-          error={errors.name?.message}
-          classNames={dashboardFieldClassNames}
-          {...register('name')}
-        />
-        <Controller
-          name="color"
-          control={control}
-          render={({ field }) => (
-            <Stack gap={8}>
-              <Text component="label" className={dashboardFieldClassNames.label}>
-                Select color
-              </Text>
-              <EventTypeColorPicker value={field.value} onChange={field.onChange} />
-              {errors.color?.message ? (
-                <Text c="accent.7" fz={12}>
-                  {errors.color.message}
-                </Text>
-              ) : null}
-            </Stack>
-          )}
-        />
+        <EventTypeFields register={register} control={control} errors={errors} />
         {mutation.error instanceof ScheduleRequestError ? (
           <Text c="accent.7" fz={14}>
             {mutation.error.message}

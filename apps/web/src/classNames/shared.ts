@@ -23,5 +23,16 @@ export const dashboardFieldClassNames = {
     'min-h-9 border-[color-mix(in_srgb,#201e1d_40%,transparent)] bg-surface text-[14px] caret-accent hover:border-[color-mix(in_srgb,#201e1d_45%,transparent)] focus:border-accent',
 };
 
+export const eventTypeColorPickerClassNames = {
+  wrapper:
+    'w-full border-2 border-[color-mix(in_srgb,#201e1d_40%,transparent)] bg-surface p-2 [--cp-saturation-height:104px] [--cp-body-spacing:10px]',
+  saturation: 'rounded-none',
+  saturationOverlay: 'rounded-none',
+  sliderOverlay: 'rounded-none',
+  preview: 'rounded-none',
+  swatch: 'rounded-none',
+  swatches: 'mx-0 mt-2 [--cp-swatch-size:calc(1.25rem*var(--mantine-scale))]',
+};
+
 export const searchInputClassName =
   'min-h-[42px] border-[color-mix(in_srgb,#201e1d_40%,transparent)] bg-surface px-3.5 text-[15px] caret-accent hover:border-[color-mix(in_srgb,#201e1d_45%,transparent)] focus:border-accent';

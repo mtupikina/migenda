@@ -8,6 +8,7 @@ import {
   type EventDetail,
   type EventNote,
   type EventType,
+  type ManagedEventType,
 } from '@migenda/shared';
 
 import { apiPath } from './apiPath';
@@ -169,12 +170,12 @@ export async function createEvent(input: CreateEventInput): Promise<{ id: string
   return response.json() as Promise<{ id: string; warning?: string }>;
 }
 
-export async function fetchEventTypes(): Promise<EventType[]> {
+export async function fetchEventTypes(): Promise<ManagedEventType[]> {
   const response = await fetch(apiPath('/event-types'), { credentials: 'include' });
   if (!response.ok) {
     throw new ScheduleRequestError('Could not load your event types.');
   }
-  return response.json() as Promise<EventType[]>;
+  return response.json() as Promise<ManagedEventType[]>;
 }
 
 export async function createEventType(input: CreateEventTypeInput): Promise<EventType> {
@@ -188,6 +189,29 @@ export async function createEventType(input: CreateEventTypeInput): Promise<Even
     throw new ScheduleRequestError(await errorMessage(response, 'Could not create the type.'));
   }
   return response.json() as Promise<EventType>;
+}
+
+export async function updateEventType(typeId: string, input: CreateEventTypeInput): Promise<EventType> {
+  const response = await fetch(apiPath(`/event-types/${typeId}`), {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not save the type.'));
+  }
+  return response.json() as Promise<EventType>;
+}
+
+export async function deleteEventType(typeId: string): Promise<void> {
+  const response = await fetch(apiPath(`/event-types/${typeId}/delete`), {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new ScheduleRequestError(await errorMessage(response, 'Could not delete the type.'));
+  }
 }
 
 export async function createTimeBlock(input: CreateTimeBlockInput): Promise<{ id: string }> {

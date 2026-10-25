@@ -5,19 +5,38 @@ export const EVENT_DESCRIPTION_MAX = 1000;
 export const EVENT_TYPE_NAME_MAX = 50;
 
 export const EVENT_TYPE_COLORS = [
-  { id: 'red', label: 'Red', value: 'oklch(0.62 0.21 25)' },
-  { id: 'orange', label: 'Orange', value: 'oklch(0.72 0.16 55)' },
-  { id: 'amber', label: 'Amber', value: 'oklch(0.8 0.15 80)' },
-  { id: 'yellow-green', label: 'Yellow-green', value: 'oklch(0.78 0.16 120)' },
-  { id: 'green', label: 'Green', value: 'oklch(0.65 0.15 150)' },
-  { id: 'teal', label: 'Teal', value: 'oklch(0.68 0.12 190)' },
-  { id: 'blue', label: 'Blue', value: 'oklch(0.6 0.15 250)' },
-  { id: 'indigo', label: 'Indigo', value: 'oklch(0.55 0.17 280)' },
-  { id: 'purple', label: 'Purple', value: 'oklch(0.58 0.18 310)' },
-  { id: 'pink', label: 'Pink', value: 'oklch(0.65 0.19 350)' },
+  { id: 'red', label: 'Red', value: 'oklch(0.62 0.21 25)', hex: '#E24B3C' },
+  { id: 'orange', label: 'Orange', value: 'oklch(0.72 0.16 55)', hex: '#E8923A' },
+  { id: 'amber', label: 'Amber', value: 'oklch(0.8 0.15 80)', hex: '#E8C04A' },
+  { id: 'yellow-green', label: 'Yellow-green', value: 'oklch(0.78 0.16 120)', hex: '#8FD44A' },
+  { id: 'green', label: 'Green', value: 'oklch(0.65 0.15 150)', hex: '#3DB56A' },
+  { id: 'teal', label: 'Teal', value: 'oklch(0.68 0.12 190)', hex: '#3DB8B0' },
+  { id: 'blue', label: 'Blue', value: 'oklch(0.6 0.15 250)', hex: '#4A7AD4' },
+  { id: 'indigo', label: 'Indigo', value: 'oklch(0.55 0.17 280)', hex: '#6A5AD4' },
+  { id: 'purple', label: 'Purple', value: 'oklch(0.58 0.18 310)', hex: '#B04AC8' },
+  { id: 'pink', label: 'Pink', value: 'oklch(0.65 0.19 350)', hex: '#E05A9C' },
 ] as const;
 
 const eventTypeColorValues: readonly string[] = EVENT_TYPE_COLORS.map((color) => color.value);
+const EVENT_TYPE_HEX = /^#[0-9a-fA-F]{6}$/;
+
+export function isEventTypeColor(color: string): boolean {
+  if ((eventTypeColorValues as readonly string[]).includes(color)) {
+    return true;
+  }
+  return EVENT_TYPE_HEX.test(color);
+}
+
+export function eventTypeColorForPicker(color: string): string {
+  if (EVENT_TYPE_HEX.test(color)) {
+    return color;
+  }
+  const known = EVENT_TYPE_COLORS.find((entry) => entry.value === color);
+  if (known) {
+    return known.hex;
+  }
+  return EVENT_TYPE_COLORS[0].hex;
+}
 
 export const WEEKDAYS = [
   { value: 1, label: 'Monday' },
@@ -37,9 +56,15 @@ export const eventTypeSchema = z.object({
 
 export type EventType = z.infer<typeof eventTypeSchema>;
 
+export const managedEventTypeSchema = eventTypeSchema.extend({
+  inUse: z.boolean(),
+});
+
+export type ManagedEventType = z.infer<typeof managedEventTypeSchema>;
+
 export const createEventTypeSchema = z.object({
   name: z.string().trim().min(1, 'Enter a type name').max(EVENT_TYPE_NAME_MAX, 'Use 50 characters or fewer'),
-  color: z.string().refine((color) => eventTypeColorValues.includes(color), 'Choose a color'),
+  color: z.string().refine(isEventTypeColor, 'Choose a color'),
 });
 
 export type CreateEventTypeInput = z.infer<typeof createEventTypeSchema>;

@@ -12,6 +12,7 @@ export function AppNav() {
         <AppNavLink to="/dashboard">Schedule</AppNavLink>
         <AppNavLink to="/search">Search</AppNavLink>
         <AppNavLink to="/reports">Reports</AppNavLink>
+        <AppNavLink to="/event-types">Event types</AppNavLink>
         <AppNavLink to="/team">Team</AppNavLink>
         <AppNavLink to="/profile">Profile</AppNavLink>
         <TeamSwitcher />

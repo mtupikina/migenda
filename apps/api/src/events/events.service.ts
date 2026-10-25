@@ -18,6 +18,7 @@ import {
   type EventDetail,
   type EventNote as EventNoteDto,
   type EventType as EventTypeDto,
+  type ManagedEventType as ManagedEventTypeDto,
   type Occurrence,
 } from '@migenda/shared';
 import { AuthService } from '../auth/auth.service';
@@ -37,7 +38,7 @@ import { EventException, EventExceptionDocument } from './event-exception.schema
 import { EventNote, EventNoteDocument } from './event-note.schema';
 import { assertSchedule, assertTimeZone, uniqueWeekdays } from './event-rules';
 import { CalendarEvent, CalendarEventDocument } from './event.schema';
-import { toEventType } from './event-type-dto';
+import { toEventType, toManagedEventType } from './event-type-dto';
 import { EventType, EventTypeDocument } from './event-type.schema';
 import { containsInstant, expandEvent, ruleFrom, ruleOf, type EventRule } from './expand-event';
 import { MoveEventDto } from './move-event.dto';
@@ -340,21 +341,16 @@ export class EventsService {
     return { id: targetId, start: newStart.toISOString(), end: newEnd.toISOString() };
   }
 
-  async listTypes(sid: string): Promise<EventTypeDto[]> {
+  async listTypes(sid: string): Promise<ManagedEventTypeDto[]> {
     const { teamId } = await this.auth.resolveTeamScope(sid);
     const typeDocs = await this.typesOf(teamId);
-    return typeDocs.map(toEventType);
+    const usedIds = await this.usedTypeIds(teamId);
+    return typeDocs.map((type) => toManagedEventType(type, usedIds.has(String(type._id))));
   }
 
   async createType(sid: string, dto: CreateEventTypeDto): Promise<EventTypeDto> {
     const { teamId } = await this.auth.resolveTeamScope(sid);
-    const existing = await this.types
-      .findOne({ teamId, name: dto.name })
-      .collation({ locale: 'en', strength: 2 })
-      .exec();
-    if (existing) {
-      throw new ConflictException('A type with this name already exists');
-    }
+    await this.assertUniqueTypeName(teamId, dto.name);
 
     try {
       const created = await this.types.create({
@@ -369,6 +365,33 @@ export class EventsService {
       }
       throw error;
     }
+  }
+
+  async updateType(sid: string, typeId: string, dto: CreateEventTypeDto): Promise<EventTypeDto> {
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const type = await this.requireTeamType(teamId, typeId);
+    await this.assertUniqueTypeName(teamId, dto.name, type._id);
+    type.name = dto.name;
+    type.color = dto.color;
+    try {
+      await type.save();
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ConflictException('A type with this name already exists');
+      }
+      throw error;
+    }
+    return toEventType(type);
+  }
+
+  async deleteType(sid: string, typeId: string): Promise<void> {
+    const { teamId } = await this.auth.resolveTeamScope(sid);
+    const type = await this.requireTeamType(teamId, typeId);
+    const used = await this.events.countDocuments({ teamId, typeId: type._id }).exec();
+    if (used > 0) {
+      throw new ConflictException('This type is used on events. Move those events to another type first.');
+    }
+    await this.types.deleteOne({ _id: type._id, teamId }).exec();
   }
 
   async createTimeBlock(sid: string, dto: CreateTimeBlockDto): Promise<{ id: string }> {
@@ -894,13 +917,41 @@ export class EventsService {
   }
 
   private async assertTeamType(teamId: Types.ObjectId, typeId: string): Promise<void> {
+    await this.requireTeamType(teamId, typeId, 'Choose a type');
+  }
+
+  private async requireTeamType(
+    teamId: Types.ObjectId,
+    typeId: string,
+    missing = 'This event type could not be found.',
+  ): Promise<EventTypeDocument> {
     if (!Types.ObjectId.isValid(typeId)) {
-      throw new NotFoundException('Choose a type');
+      throw new NotFoundException(missing);
     }
     const type = await this.types.findOne({ _id: typeId, teamId }).exec();
     if (!type) {
-      throw new NotFoundException('Choose a type');
+      throw new NotFoundException(missing);
     }
+    return type;
+  }
+
+  private async assertUniqueTypeName(
+    teamId: Types.ObjectId,
+    name: string,
+    exceptId?: Types.ObjectId,
+  ): Promise<void> {
+    const existing = await this.types
+      .findOne({ teamId, name, ...(exceptId ? { _id: { $ne: exceptId } } : {}) })
+      .collation({ locale: 'en', strength: 2 })
+      .exec();
+    if (existing) {
+      throw new ConflictException('A type with this name already exists');
+    }
+  }
+
+  private async usedTypeIds(teamId: Types.ObjectId): Promise<Set<string>> {
+    const ids = await this.events.distinct('typeId', { teamId }).exec();
+    return new Set(ids.map((id) => String(id)));
   }
 }
 

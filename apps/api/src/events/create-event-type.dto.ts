@@ -1,9 +1,25 @@
 import { Transform } from 'class-transformer';
-import { IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsString,
+  MaxLength,
+  MinLength,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 
-import { EVENT_TYPE_COLORS } from '@migenda/shared';
+import { isEventTypeColor } from '@migenda/shared';
 
-const colorValues = EVENT_TYPE_COLORS.map((color) => color.value);
+@ValidatorConstraint({ name: 'eventTypeColor', async: false })
+class EventTypeColorRule implements ValidatorConstraintInterface {
+  validate(value: unknown) {
+    return typeof value === 'string' && isEventTypeColor(value);
+  }
+
+  defaultMessage() {
+    return 'Choose a color';
+  }
+}
 
 export class CreateEventTypeDto {
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
@@ -13,6 +29,6 @@ export class CreateEventTypeDto {
   name!: string;
 
   @IsString()
-  @IsIn(colorValues)
+  @Validate(EventTypeColorRule)
   color!: string;
 }

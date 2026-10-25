@@ -4,6 +4,8 @@ export {
   EVENT_TITLE_MAX,
   EVENT_TYPE_COLORS,
   EVENT_TYPE_NAME_MAX,
+  eventTypeColorForPicker,
+  isEventTypeColor,
   SCHEDULE_VIEW_ALL,
   SCHEDULE_VIEW_ME,
   TIME_BLOCK_REASON_MAX,
@@ -17,6 +19,7 @@ export {
   eventDetailSchema,
   eventNoteSchema,
   eventTypeSchema,
+  managedEventTypeSchema,
   occurrenceSchema,
   conflictingOccurrences,
   rangeIsOpen,
@@ -29,6 +32,7 @@ export {
   type EventDetail,
   type EventNote,
   type EventType,
+  type ManagedEventType,
   type Occurrence,
 } from './event';
 export { loginSchema, type LoginInput } from './auth';
