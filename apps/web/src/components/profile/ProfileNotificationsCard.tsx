@@ -37,6 +37,10 @@ export function ProfileNotificationsCard({ user }: ProfileNotificationsCardProps
       <Text component="p" className={profileCardTitleClassName}>
         Notifications
       </Text>
+      <Text fz={12} className="mb-4 opacity-65">
+        Email notifications are not supported yet. We plan to enable them in a future release; your
+        choices here will apply when that happens.
+      </Text>
       <Stack gap={16}>
         {notificationRows.map((row) => (
           <Group key={row.key} justify="space-between" wrap="nowrap" gap={16}>
