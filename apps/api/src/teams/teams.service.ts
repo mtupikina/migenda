@@ -8,7 +8,7 @@ import { Invite, InviteDocument } from './invite.schema';
 import { Membership, MembershipDocument } from './membership.schema';
 import { personalTeamName } from './personal-team-name';
 import { toTeam, toTeamSummary, type MemberRecord, type PendingRecord } from './team-dto';
-import { NOT_A_MEMBER } from './team-errors';
+import { NOT_A_MEMBER, OWNER_ONLY } from './team-errors';
 import { Team, TeamDocument } from './team.schema';
 
 @Injectable()
@@ -44,7 +44,7 @@ export class TeamsService {
   async assertOwner(teamId: Types.ObjectId, userId: Types.ObjectId): Promise<void> {
     const membership = await this.memberships.findOne({ teamId, userId }).exec();
     if (membership?.role !== 'owner') {
-      throw new ForbiddenException('Only the team owner can do this');
+      throw new ForbiddenException(OWNER_ONLY);
     }
   }
 

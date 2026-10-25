@@ -4,9 +4,22 @@ import type { Team as TeamDto } from '@migenda/shared';
 import { Model, Types } from 'mongoose';
 
 import { User, UserDocument } from '../auth/user.schema';
+import { EventException, EventExceptionDocument } from '../events/event-exception.schema';
+import { EventNote, EventNoteDocument } from '../events/event-note.schema';
 import { CalendarEvent, CalendarEventDocument } from '../events/event.schema';
+import { EventType, EventTypeDocument } from '../events/event-type.schema';
+import { Invite, InviteDocument } from './invite.schema';
 import { Membership, MembershipDocument } from './membership.schema';
-import { CANNOT_REMOVE_OWNER, CANNOT_REMOVE_SELF, NOT_A_MEMBER, NOT_ON_TEAM, ONLY_TEAM, OWNER_STAYS } from './team-errors';
+import {
+  CANNOT_REMOVE_OWNER,
+  CANNOT_REMOVE_SELF,
+  NOT_A_MEMBER,
+  NOT_ON_TEAM,
+  ONLY_TEAM,
+  ONLY_TEAM_DELETE,
+  OWNER_ONLY,
+  OWNER_STAYS,
+} from './team-errors';
 import { Team, TeamDocument } from './team.schema';
 import { TeamsService } from './teams.service';
 
@@ -17,8 +30,12 @@ export class TeamMembershipService {
     private readonly teams: TeamsService,
     @InjectModel(Team.name) private readonly teamDocs: Model<TeamDocument>,
     @InjectModel(Membership.name) private readonly memberships: Model<MembershipDocument>,
+    @InjectModel(Invite.name) private readonly invites: Model<InviteDocument>,
     @InjectModel(User.name) private readonly users: Model<UserDocument>,
     @InjectModel(CalendarEvent.name) private readonly events: Model<CalendarEventDocument>,
+    @InjectModel(EventType.name) private readonly types: Model<EventTypeDocument>,
+    @InjectModel(EventException.name) private readonly exceptions: Model<EventExceptionDocument>,
+    @InjectModel(EventNote.name) private readonly notes: Model<EventNoteDocument>,
   ) {}
 
   /**
@@ -43,6 +60,32 @@ export class TeamMembershipService {
       throw new ForbiddenException(ONLY_TEAM);
     }
     await this.release(team, user, membership, next);
+  }
+
+  /**
+   * The owner deletes the team and every event, type, note, and invite in it.
+   * Members move to another team they already belong to, or get a new personal team.
+   * The owner must already belong to another team.
+   */
+  async deleteTeam(user: UserDocument, teamId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(teamId)) {
+      throw new ForbiddenException(NOT_A_MEMBER);
+    }
+    const id = new Types.ObjectId(teamId);
+    const membership = await this.memberships.findOne({ teamId: id, userId: user._id }).exec();
+    if (!membership) {
+      throw new ForbiddenException(NOT_A_MEMBER);
+    }
+    if (membership.role !== 'owner') {
+      throw new ForbiddenException(OWNER_ONLY);
+    }
+    const next = await this.teams.fallbackTeam(user._id, id);
+    if (!next) {
+      throw new ForbiddenException(ONLY_TEAM_DELETE);
+    }
+    const members = await this.teams.memberUsers(id);
+    await this.wipeTeamRecords(id);
+    await this.rehomeMembers(members);
   }
 
   /**
@@ -85,6 +128,25 @@ export class TeamMembershipService {
       throw new NotFoundException('Team not found');
     }
     return team;
+  }
+
+  /** Drops the team and every record that only exists because of it. */
+  private async wipeTeamRecords(teamId: Types.ObjectId): Promise<void> {
+    const eventIds = await this.events.find({ teamId }).distinct('_id').exec();
+    await this.notes.deleteMany({ eventId: { $in: eventIds } }).exec();
+    await this.exceptions.deleteMany({ eventId: { $in: eventIds } }).exec();
+    await this.events.deleteMany({ teamId }).exec();
+    await this.types.deleteMany({ teamId }).exec();
+    await this.invites.deleteMany({ teamId }).exec();
+    await this.memberships.deleteMany({ teamId }).exec();
+    await this.teamDocs.deleteOne({ _id: teamId }).exec();
+  }
+
+  /** Puts each person on another team they belong to, or creates one if this was their last. */
+  private async rehomeMembers(members: UserDocument[]): Promise<void> {
+    for (const member of members) {
+      await this.teams.ensureActiveTeam(member);
+    }
   }
 
   /** Moves their events to the owner, drops the membership, and switches them off this team if it was active. */

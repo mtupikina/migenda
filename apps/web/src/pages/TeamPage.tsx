@@ -2,6 +2,7 @@ import { Box, Loader, Stack, Text } from '@mantine/core';
 
 import { AppNav } from '../components/AppNav';
 import { CreateTeamForm } from '../components/team/CreateTeamForm';
+import { DeleteTeamButton } from '../components/team/DeleteTeamButton';
 import { InviteMemberForm } from '../components/team/InviteMemberForm';
 import { LeaveTeamButton } from '../components/team/LeaveTeamButton';
 import { PendingInvites } from '../components/team/PendingInvites';
@@ -45,6 +46,7 @@ export function TeamPage() {
           ) : null}
           {team.isSuccess && isOwner ? <InviteMemberForm /> : null}
           {team.isSuccess ? <CreateTeamForm /> : null}
+          {team.isSuccess && isOwner ? <DeleteTeamButton team={team.data} /> : null}
           {team.isSuccess && !isOwner ? <LeaveTeamButton team={team.data} /> : null}
         </Stack>
       </Box>

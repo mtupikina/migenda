@@ -60,4 +60,10 @@ export class TeamsController {
     const user = await this.auth.resolveUserFromSession(sessionId(req));
     await this.membership.leave(user, teamId);
   }
+
+  @Delete(':teamId')
+  async deleteTeam(@Req() req: Request, @Param('teamId') teamId: string): Promise<void> {
+    const user = await this.auth.resolveUserFromSession(sessionId(req));
+    await this.membership.deleteTeam(user, teamId);
+  }
 }
