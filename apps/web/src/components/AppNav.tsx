@@ -1,22 +1,22 @@
 import { Group } from '@mantine/core';
 
+import { calendarPath } from '../schedule/calendarPeriod';
 import { AppNavLink } from './AppNavLink';
-import { LogOutNavLink } from './LogOutNavLink';
+import { AppNavMenu } from './AppNavMenu';
 import { Nav } from './Nav';
-import { TeamSwitcher } from './TeamSwitcher';
 
 export function AppNav() {
+  const calendarToday = calendarPath('month', new Date());
+
   return (
     <Nav aria-label="App">
-      <Group gap={24} ml="auto" wrap="nowrap">
+      <Group gap={{ base: 8, sm: 20 }} ml="auto" wrap="nowrap" align="center">
         <AppNavLink to="/dashboard">Schedule</AppNavLink>
-        <AppNavLink to="/search">Search</AppNavLink>
+        <AppNavLink to={calendarToday} activePrefix="/calendar">
+          Calendar
+        </AppNavLink>
         <AppNavLink to="/reports">Reports</AppNavLink>
-        <AppNavLink to="/event-types">Event types</AppNavLink>
-        <AppNavLink to="/team">Team</AppNavLink>
-        <AppNavLink to="/profile">Profile</AppNavLink>
-        <TeamSwitcher />
-        <LogOutNavLink />
+        <AppNavMenu />
       </Group>
     </Nav>
   );

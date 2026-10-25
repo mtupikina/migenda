@@ -34,5 +34,13 @@ export const eventTypeColorPickerClassNames = {
   swatches: 'mx-0 mt-2 [--cp-swatch-size:calc(1.25rem*var(--mantine-scale))]',
 };
 
+export const appNavDrawerClassNames = {
+  header:
+    'min-h-14 border-b-2 border-[color-mix(in_srgb,#201e1d_28%,transparent)] px-5 py-4',
+  title: 'text-[15px] font-extrabold leading-tight',
+  body: 'p-0',
+  content: 'max-w-[min(100vw,320px)] bg-surface',
+};
+
 export const searchInputClassName =
   'min-h-[42px] border-[color-mix(in_srgb,#201e1d_40%,transparent)] bg-surface px-3.5 text-[15px] caret-accent hover:border-[color-mix(in_srgb,#201e1d_45%,transparent)] focus:border-accent';

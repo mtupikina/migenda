@@ -3,10 +3,10 @@ import { Anchor, Group, Image, Text } from '@mantine/core';
 
 export function BrandMark() {
   return (
-    <Anchor component={Link} to="/" mr="auto" c="inherit" td="none">
+    <Anchor component={Link} to="/" mr="auto" c="inherit" td="none" aria-label="MiGenda home">
       <Group gap={8} wrap="nowrap">
         <Image src="/brand-icon.png" alt="" h={28} w="auto" />
-        <Text fw={800} fz={18}>
+        <Text fw={800} fz={18} visibleFrom="sm">
           MiGenda
         </Text>
       </Group>
