@@ -6,7 +6,7 @@ import { AppNavMenu } from './AppNavMenu';
 import { Nav } from './Nav';
 
 export function AppNav() {
-  const calendarToday = calendarPath('month', new Date());
+  const calendarToday = calendarPath('week', new Date());
 
   return (
     <Nav aria-label="App">
