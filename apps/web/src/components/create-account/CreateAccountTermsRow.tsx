@@ -1,6 +1,7 @@
-import { Anchor, Checkbox, Text } from '@mantine/core';
+import { Checkbox, Text } from '@mantine/core';
 
 import { RememberCheckIcon } from '../login/RememberCheckIcon';
+import { CreateAccountLegalLink } from './CreateAccountLegalLink';
 
 type CreateAccountTermsRowProps = {
   checked: boolean;
@@ -19,14 +20,14 @@ export function CreateAccountTermsRow({ checked, onChange, error }: CreateAccoun
       icon={RememberCheckIcon}
       label={
         <Text span fz={13}>
-          I agree to the{' '}
-          <Anchor href="#" fz={13} c="accent.7" className="hover:text-accent no-underline ml-1">
+          I agree to the
+          <CreateAccountLegalLink to="/terms" className="hover:text-accent no-underline ml-1">
             Terms
-          </Anchor>{' '}
+          </CreateAccountLegalLink>{' '}
           and{' '}
-          <Anchor href="#" fz={13} c="accent.7" className="hover:text-accent no-underline">
+          <CreateAccountLegalLink to="/privacy" className="hover:text-accent no-underline">
             Privacy Policy
-          </Anchor>
+          </CreateAccountLegalLink>
         </Text>
       }
       classNames={{ label: 'pl-2' }}

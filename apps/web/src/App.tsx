@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { GeneratedReportPage } from './pages/GeneratedReportPage';
 import { GetStartedPage } from './pages/GetStartedPage';
 import { LandingPage } from './pages/LandingPage';
+import { LegalPage } from './pages/LegalPage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordConfirmPage } from './pages/ResetPasswordConfirmPage';
 import { SearchPage } from './pages/SearchPage';
@@ -23,6 +24,8 @@ export function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/create-account" element={<CreateAccountPage />} />
+      <Route path="/terms" element={<LegalPage kind="terms" />} />
+      <Route path="/privacy" element={<LegalPage kind="privacy" />} />
       <Route path="/get-started" element={<GetStartedPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/reset-password/confirm" element={<ResetPasswordConfirmPage />} />
